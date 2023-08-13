@@ -1,7 +1,7 @@
 package me.bejosch.battleprogress.server.Objects;
 
 import me.bejosch.battleprogress.server.Data.MapData;
-import me.bejosch.battleprogress.server.Data.ServerDaten;
+import me.bejosch.battleprogress.server.Data.ServerData;
 import me.bejosch.battleprogress.server.Enum.FieldType;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
 
@@ -20,7 +20,7 @@ public class Map {
 	public Map(String name, String fieldData) {
 		
 		this.name = name;
-		this.fieldList = new Field[ServerDaten.mapWidth][ServerDaten.mapHight];
+		this.fieldList = new Field[ServerData.mapWidth][ServerData.mapHight];
 		fillFieldList();
 		readOutFieldData(fieldData);
 		
@@ -36,8 +36,8 @@ public class Map {
 	 */
 	public void fillFieldList() {
 		
-		for(int x = 0 ; x < ServerDaten.mapWidth ; x++) {
-			for(int y = 0 ; y < ServerDaten.mapHight ; y++) {
+		for(int x = 0 ; x < ServerData.mapWidth ; x++) {
+			for(int y = 0 ; y < ServerData.mapHight ; y++) {
 				fieldList[x][y] = new Field(FieldType.Gras, x, y);
 			}
 		}
@@ -90,8 +90,8 @@ public class Map {
 		
 		String output = "";
 		
-		for(int x = 0 ; x < ServerDaten.mapWidth ; x++) {
-			for(int y = 0 ; y < ServerDaten.mapHight ; y++) {
+		for(int x = 0 ; x < ServerData.mapWidth ; x++) {
+			for(int y = 0 ; y < ServerData.mapHight ; y++) {
 				
 				Field field = fieldList[x][y];
 				

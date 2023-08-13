@@ -1,11 +1,12 @@
 package me.bejosch.battleprogress.server.Handler;
 
+import org.apache.mina.core.session.IoSession;
+
 import me.bejosch.battleprogress.server.Data.DatabaseData;
 import me.bejosch.battleprogress.server.Data.ProfileData;
 import me.bejosch.battleprogress.server.Data.ServerPlayerData;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
-import me.bejosch.battleprogress.server.Objects.ClientConnectionThread;
+import me.bejosch.battleprogress.server.Objects.ClientConnection;
 import me.bejosch.battleprogress.server.Objects.PlayerProfile;
 import me.bejosch.battleprogress.server.Objects.ServerGame;
 import me.bejosch.battleprogress.server.Objects.ServerGroup;
@@ -46,8 +47,8 @@ public class ProfileHandler {
 		for(PlayerProfile friendProfile : profile.getFriendlist()) {
 			if(friendProfile.getOnlineTimeInMin() != -1) {
 				//ONLINE
-				profile.getConnection().sendData(130, ServerConnection.getNewPacketId(), ""+friendProfile.getId()); //SEND CLIENT ONLINE FRIEND
-				friendProfile.getConnection().sendData(130, ServerConnection.getNewPacketId(), ""+profile.getId()); //SEND FRIEND THAT CLIENT IS ON
+				profile.getConnection().sendData(130, ""+friendProfile.getId()); //SEND CLIENT ONLINE FRIEND
+				friendProfile.getConnection().sendData(130, ""+profile.getId()); //SEND FRIEND THAT CLIENT IS ON
 				
 				//UPDATE REFERENCE OF FRIEND TO THIS
 				for(PlayerProfile friendFriendProfile : friendProfile.getFriendlist()) {
@@ -62,7 +63,7 @@ public class ProfileHandler {
 				
 			}else {
 				//OFFLINE
-				profile.getConnection().sendData(131, ServerConnection.getNewPacketId(), ""+friendProfile.getId()); //SEND CLIENT OFFLINE FRIEND
+				profile.getConnection().sendData(131, ""+friendProfile.getId()); //SEND CLIENT OFFLINE FRIEND
 			}
 		}
 		
@@ -75,7 +76,7 @@ public class ProfileHandler {
 		
 		ConsoleOutput.printMessageInConsole("Client disconnected! - (ID:"+profile.getId()+") (Name:"+profile.getName()+") (Send: "+profile.getConnection().sendedDataList.size()+")", true);
 		profile.setMarkedForDisconnect(true);
-		ServerPlayer player = ServerPlayerHandler.getOnlinePlayerByName(profile.getName());
+		ServerPlayer player = ServerPlayerHandler.getOnlinePlayer(profile.getName());
 		ServerGroup group = ServerGroupHandler.getGroupByPlayer(player);
 		if(group != null) {
 			group.removePlayer(player, true);
@@ -91,7 +92,7 @@ public class ProfileHandler {
 		for(PlayerProfile friendProfile : profile.getFriendlist()) {
 			if(friendProfile.getOnlineTimeInMin() != -1) {
 				//ONLINE
-				friendProfile.getConnection().sendData(131, ServerConnection.getNewPacketId(), ""+profile.getId()); //SEND FRIEND THAT CLIENT IS OFF
+				friendProfile.getConnection().sendData(131, ""+profile.getId()); //SEND FRIEND THAT CLIENT IS OFF
 				//SET REFERENCE OF FRIEND TO THIS TO OFFLINE
 				for(PlayerProfile friendFriendProfile : friendProfile.getFriendlist()) {
 					if(friendFriendProfile.getId() == profile.getId()) {
@@ -108,7 +109,7 @@ public class ProfileHandler {
 	
 	//GET
 	//ONLINE
-	public static PlayerProfile getPlayerProfileByClientConnection(ClientConnectionThread connection) {
+	public static PlayerProfile getPlayerProfile(ClientConnection connection) {
 		
 		for(PlayerProfile profile : ProfileData.onlineProfiles) {
 			if(profile.getConnection() == connection) {
@@ -119,7 +120,18 @@ public class ProfileHandler {
 		
 		return null;
 	}
-	public static PlayerProfile getPlayerProfileByName(String name) {
+	public static PlayerProfile getPlayerProfile(IoSession session) {
+		
+		for(PlayerProfile profile : ProfileData.onlineProfiles) {
+			if(profile.getConnection().session == session) {
+				//FOUND
+				return profile;
+			}
+		}
+		
+		return null;
+	}
+	public static PlayerProfile getPlayerProfile(String name) {
 		
 		for(PlayerProfile profile : ProfileData.onlineProfiles) {
 			if(profile.getName().equalsIgnoreCase(name)) {
@@ -130,7 +142,7 @@ public class ProfileHandler {
 		
 		return null;
 	}
-	public static PlayerProfile getPlayerProfileByID(int ID) {
+	public static PlayerProfile getPlayerProfile(int ID) {
 		
 		for(PlayerProfile profile : ProfileData.onlineProfiles) {
 			if(profile.getId() == ID) {
@@ -181,7 +193,7 @@ public class ProfileHandler {
 	}
 
 	//REGISTER / LOGIN
-	public static void createNewProfile(String name, String password, ClientConnectionThread clientConnectionThread) {
+	public static void createNewProfile(String name, String password, ClientConnection clientConnectionThread) {
 		
 		if(isNameUsed(name) == false) {
 			//NAME IS FREE
@@ -189,18 +201,18 @@ public class ProfileHandler {
 			PlayerProfile profile = new PlayerProfile(clientConnectionThread, name, false);
 			ServerPlayer player = new ServerPlayer(profile);
 			new ServerGroup(player);
-			clientConnectionThread.sendData(200, ServerConnection.getNewPacketId(), profile.convertThisPlayerProfileToString()+";Successfully registered!");
+			clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully registered!");
 		}else {
-			clientConnectionThread.sendData(201, ServerConnection.getNewPacketId(), "Username already used!");
+			clientConnectionThread.sendData(201, "Username already used!");
 		}
 		
 	}
 
-	public static void checkProfileLogin(String name, String password, ClientConnectionThread clientConnectionThread) {
+	public static void checkProfileLogin(String name, String password, ClientConnection clientConnectionThread) {
 		
 		if(isNameUsed(name) == true) {
 			//NAME IS VALID
-			if(getPlayerProfileByName(name) == null) {
+			if(getPlayerProfile(name) == null) {
 				//NAME IS NOT ONLINE
 				String realName = DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Name", "Name", name);
 				if(DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Password", "Name", name).equals(password)) {
@@ -208,15 +220,15 @@ public class ProfileHandler {
 					PlayerProfile profile = new PlayerProfile(clientConnectionThread, realName, false);
 					ServerPlayer player = new ServerPlayer(profile);
 					new ServerGroup(player);
-					clientConnectionThread.sendData(200, ServerConnection.getNewPacketId(), profile.convertThisPlayerProfileToString()+";Successfully logged in!");
+					clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully logged in!");
 				}else {
-					clientConnectionThread.sendData(201, ServerConnection.getNewPacketId(), "Incorrect password!");
+					clientConnectionThread.sendData(201, "Incorrect password!");
 				}
 			}else {
-				clientConnectionThread.sendData(201, ServerConnection.getNewPacketId(), "Already logged in!");
+				clientConnectionThread.sendData(201, "Already logged in!");
 			}
 		}else {
-			clientConnectionThread.sendData(201, ServerConnection.getNewPacketId(), "Unknown username!");
+			clientConnectionThread.sendData(201, "Unknown username!");
 		}
 		
 	}

@@ -1,14 +1,17 @@
 package me.bejosch.battleprogress.server.Main;
 
-import java.io.IOException;
+import java.text.DateFormat;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import me.bejosch.battleprogress.server.Connection.MinaServer;
+import me.bejosch.battleprogress.server.Data.ConnectionData;
 import me.bejosch.battleprogress.server.Data.ConsoleData;
 import me.bejosch.battleprogress.server.Data.DatabaseData;
-import me.bejosch.battleprogress.server.Data.ServerDaten;
+import me.bejosch.battleprogress.server.Data.ServerData;
 import me.bejosch.battleprogress.server.Data.ServerGameData;
 import me.bejosch.battleprogress.server.Data.ServerGroupData;
 import me.bejosch.battleprogress.server.Data.ServerPlayerData;
@@ -20,7 +23,7 @@ import me.bejosch.battleprogress.server.Handler.ServerPlayerHandler;
 import me.bejosch.battleprogress.server.Handler.ServerQueueHandler;
 import me.bejosch.battleprogress.server.Handler.UnitsStatsHandler;
 import me.bejosch.battleprogress.server.Handler.UpgradeDataHandler;
-import me.bejosch.battleprogress.server.Objects.ClientConnectionThread;
+import me.bejosch.battleprogress.server.Objects.ClientConnection;
 import me.bejosch.battleprogress.server.Objects.ServerGame;
 import me.bejosch.battleprogress.server.Objects.ServerGroup;
 import me.bejosch.battleprogress.server.Objects.ServerPlayer;
@@ -42,7 +45,8 @@ public class ConsoleOutput {
 		if(gameID == ConsoleData.focusedGameID) {
 			//RIGHT MODE
 			if(prefix == true) {
-				System.out.println(ServerDaten.MessagePrefix+text);
+				String time = DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime()).split(" ")[1];
+				System.out.println(ServerData.messagePrefix+"["+time+"] "+text);
 			}else {
 				System.out.println(text);
 			}
@@ -225,18 +229,18 @@ public class ConsoleOutput {
 			try {
 				//ID
 				int id = Integer.parseInt(inputs.get(1));
-				ServerPlayer player = ServerPlayerHandler.getOnlinePlayerByID(id);
+				ServerPlayer player = ServerPlayerHandler.getOnlinePlayer(id);
 				if(player != null) {
-					player.getProfile().getConnection().sendData(998, ServerConnection.getNewPacketId(), ""+System.currentTimeMillis());
+					player.getProfile().getConnection().sendData(998, ""+System.currentTimeMillis());
 				}else {
 					printMessageInConsole("There is no player with ID '"+id+"' online!", true);
 				}
 			}catch(NumberFormatException error) {
 				//NAME
 				String name = inputs.get(1);
-				ServerPlayer player = ServerPlayerHandler.getOnlinePlayerByName(name);
+				ServerPlayer player = ServerPlayerHandler.getOnlinePlayer(name);
 				if(player != null) {
-					player.getProfile().getConnection().sendData(998, ServerConnection.getNewPacketId(), ""+System.currentTimeMillis());
+					player.getProfile().getConnection().sendData(998, ""+System.currentTimeMillis());
 				}else {
 					printMessageInConsole("There is no player with Name '"+name+"' online!", true);
 				}
@@ -365,11 +369,10 @@ public class ConsoleOutput {
 		
 		ConsoleOutput.printMessageInConsole("Stopping server after "+(System.currentTimeMillis()-StandardData.timeSinceStartup)/1000/60+" min runtime...", true);
 		//CLIENT CONNECTIONS
-		for(ClientConnectionThread clientSocket : ServerConnection.clientConnectionList) {
-			try {
-				clientSocket.socket.close();
-			} catch (IOException e) { }
+		for(ClientConnection clientSocket : ConnectionData.clientConnectionList) {
+			clientSocket.session.closeNow();
 		}
+		MinaServer.closeConnection();
 		//QUEUE WAITINGTIMER
 		ServerQueueHandler.stopQueueWaitTimer();
 		ConsoleOutput.printMessageInConsole("QueueWaitingTimer stopped!", true);

@@ -9,7 +9,6 @@ import me.bejosch.battleprogress.server.Data.ServerQueueData;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.ServerGroupHandler;
 import me.bejosch.battleprogress.server.Handler.ServerQueueHandler;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
 
 public class ServerQueue {
 
@@ -31,7 +30,7 @@ public class ServerQueue {
 		this.queuedPlayer = players;
 		
 		for(ServerPlayer player : this.queuedPlayer) {
-			player.getProfile().getConnection().sendData(400, ServerConnection.getNewPacketId(), type+";"+waitedSecondes);
+			player.getProfile().getConnection().sendData(400, type+";"+waitedSecondes);
 		}
 		
 		if(allreadyWaitedTime >= ServerQueueData.waitLevel_3) {
@@ -91,7 +90,7 @@ public class ServerQueue {
 		ServerQueueHandler.removeQueue(this);
 		
 		for(ServerPlayer player : this.queuedPlayer) {
-			player.getProfile().getConnection().sendData(401, ServerConnection.getNewPacketId(), "Leave Queue");
+			player.getProfile().getConnection().sendData(401, "Leave Queue");
 		}
 		
 	}

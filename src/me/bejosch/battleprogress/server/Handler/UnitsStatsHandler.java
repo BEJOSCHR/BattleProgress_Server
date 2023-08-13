@@ -5,8 +5,7 @@ import java.util.List;
 
 import me.bejosch.battleprogress.server.Data.DatabaseData;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
-import me.bejosch.battleprogress.server.Objects.ClientConnectionThread;
+import me.bejosch.battleprogress.server.Objects.ClientConnection;
 import me.bejosch.battleprogress.server.Objects.UnitStatsContainer;
 
 public class UnitsStatsHandler {
@@ -58,7 +57,7 @@ public class UnitsStatsHandler {
 		
 	}
 	
-	public static void updateUnitsForClient(ClientConnectionThread client) {
+	public static void updateUnitsForClient(ClientConnection client) {
 		
 		//110 Name, K�rzel, Kosten, Leben, EnergieVerbrauch, EnergieProduktion, MaterialProduktion, Schaden, ViewDistance, MoveDistance, ActionDistance, Heal, Repair, Research
 		
@@ -74,10 +73,10 @@ public class UnitsStatsHandler {
 		
 	}
 	
-	public static void sendUnitContainer(UnitStatsContainer container, ClientConnectionThread client) {
+	public static void sendUnitContainer(UnitStatsContainer container, ClientConnection client) {
 		
 		String data = container.name+";"+container.kürzel+";"+container.kosten+";"+container.leben+";"+container.energieVerbrauch+";"+container.energieProduktion+";"+container.materialProduktion+";"+container.schaden+";"+container.viewDistance+";"+container.moveDistance+";"+container.actionDistance+";"+container.heal+";"+container.repair+";"+container.research;
-		client.sendData(110, ServerConnection.getNewPacketId(), data);
+		client.sendData(110, data);
 				
 	}
 	

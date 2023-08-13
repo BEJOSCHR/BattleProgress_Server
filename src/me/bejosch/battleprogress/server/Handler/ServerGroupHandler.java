@@ -3,7 +3,7 @@ package me.bejosch.battleprogress.server.Handler;
 import java.util.Random;
 
 import me.bejosch.battleprogress.server.Data.ServerGroupData;
-import me.bejosch.battleprogress.server.Objects.ClientConnectionThread;
+import me.bejosch.battleprogress.server.Objects.ClientConnection;
 import me.bejosch.battleprogress.server.Objects.ServerGroup;
 import me.bejosch.battleprogress.server.Objects.ServerPlayer;
 import me.bejosch.battleprogress.server.Objects.ServerQueue;
@@ -34,7 +34,7 @@ public class ServerGroupHandler {
 		return null;
 	}
 	
-	public static ServerGroup getGroupByClientConnection(ClientConnectionThread clientConnectionThread) {
+	public static ServerGroup getGroupByClientConnection(ClientConnection clientConnectionThread) {
 		
 		for(ServerGroup group : ServerGroupData.activeGroups) {
 			for(ServerPlayer player : group.getPlayers()) {

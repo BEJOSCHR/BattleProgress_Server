@@ -15,6 +15,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
+import me.bejosch.battleprogress.server.Connection.MinaServer;
 import me.bejosch.battleprogress.server.Data.StandardData;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
 import me.bejosch.battleprogress.server.Handler.FileHandler;
@@ -63,7 +64,7 @@ public class BattleProgress_StartMain_Server {
 		ConsoleOutput.printMessageInConsole("Type '/help' for console commands!", true);
 		
 		ConsoleOutput.printMessageInConsole("8/"+max+" init server socket", true);
-		ServerConnection.initialiseServerSocket();
+		MinaServer.initConnection();
 		
 	}
 

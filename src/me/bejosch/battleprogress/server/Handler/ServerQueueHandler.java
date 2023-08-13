@@ -8,7 +8,6 @@ import java.util.TimerTask;
 
 import me.bejosch.battleprogress.server.Data.ServerQueueData;
 import me.bejosch.battleprogress.server.Enum.GameType;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
 import me.bejosch.battleprogress.server.Objects.ServerGame;
 import me.bejosch.battleprogress.server.Objects.ServerPlayer;
 import me.bejosch.battleprogress.server.Objects.ServerQueue;
@@ -48,7 +47,7 @@ public class ServerQueueHandler {
 				involvedPlayer_1.addAll(newQueue.getQueuedPlayer());
 				involvedPlayer_1.addAll(matchedQueue_1.getQueuedPlayer());
 				for(ServerPlayer player : involvedPlayer_1) {
-					player.getProfile().getConnection().sendData(405, ServerConnection.getNewPacketId(), newGame_1.getId()+""); //SEND GAME ACCEPT REQUEST
+					player.getProfile().getConnection().sendData(405, newGame_1.getId()+""); //SEND GAME ACCEPT REQUEST
 				}
 				newQueue.removeQueue(false);
 				matchedQueue_1.removeQueue(false);
@@ -78,7 +77,7 @@ public class ServerQueueHandler {
 						involvedPlayer_2.addAll(matchedQueue_2_2.getQueuedPlayer());
 						involvedPlayer_2.addAll(matchedQueue_2_3.getQueuedPlayer());
 						for(ServerPlayer player : involvedPlayer_2) {
-							player.getProfile().getConnection().sendData(405, ServerConnection.getNewPacketId(), newGame_2.getId()+""); //SEND GAME ACCEPT REQUEST
+							player.getProfile().getConnection().sendData(405, newGame_2.getId()+""); //SEND GAME ACCEPT REQUEST
 						}
 						newQueue.removeQueue(false);
 						matchedQueue_2_1.removeQueue(false);
@@ -101,7 +100,7 @@ public class ServerQueueHandler {
 						involvedPlayer_2.addAll(newQueue.getQueuedPlayer());
 						involvedPlayer_2.addAll(matchedQueue_2.getQueuedPlayer());
 						for(ServerPlayer player : involvedPlayer_2) {
-							player.getProfile().getConnection().sendData(405, ServerConnection.getNewPacketId(), newGame_2.getId()+""); //SEND GAME ACCEPT REQUEST
+							player.getProfile().getConnection().sendData(405, newGame_2.getId()+""); //SEND GAME ACCEPT REQUEST
 						}
 						newQueue.removeQueue(false);
 						matchedQueue_2.removeQueue(false);
@@ -116,7 +115,7 @@ public class ServerQueueHandler {
 				involvedPlayer_3.addAll(newQueue.getQueuedPlayer());
 				involvedPlayer_3.addAll(matchedQueue_3.getQueuedPlayer());
 				for(ServerPlayer player : involvedPlayer_3) {
-					player.getProfile().getConnection().sendData(405, ServerConnection.getNewPacketId(), newGame_3.getId()+""); //SEND GAME ACCEPT REQUEST
+					player.getProfile().getConnection().sendData(405, newGame_3.getId()+""); //SEND GAME ACCEPT REQUEST
 				}
 				newQueue.removeQueue(false);
 				matchedQueue_3.removeQueue(false);

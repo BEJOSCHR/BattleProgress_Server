@@ -11,11 +11,10 @@ import me.bejosch.battleprogress.server.Enum.PlayerRanking;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
 import me.bejosch.battleprogress.server.Handler.ProfileHandler;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
 
 public class PlayerProfile {
 
-	private ClientConnectionThread connection = null;
+	private ClientConnection connection = null;
 	
 	private long onlineTimestamp = -1;
 	
@@ -40,7 +39,7 @@ public class PlayerProfile {
 	private List<PlayerProfile> friendlist = new ArrayList<PlayerProfile>();
 	
 	//MANUELL
-	public PlayerProfile(ClientConnectionThread connection_, int id_, String name_, String password_, String date_, int level_, int XP_, int profileImageNumber, int backgroundImageNumber, int nameColorNumber, int statusNumber, PlayerRanking ranking, int rankingPoints, boolean friendlistLoad_) {
+	public PlayerProfile(ClientConnection connection_, int id_, String name_, String password_, String date_, int level_, int XP_, int profileImageNumber, int backgroundImageNumber, int nameColorNumber, int statusNumber, PlayerRanking ranking, int rankingPoints, boolean friendlistLoad_) {
 		
 		this.connection = connection_;
 		
@@ -70,7 +69,7 @@ public class PlayerProfile {
 		
 	}
 	//AUTO LOAD
-	public PlayerProfile(ClientConnectionThread connection_, String name_, boolean friendlistLoad_) {
+	public PlayerProfile(ClientConnection connection_, String name_, boolean friendlistLoad_) {
 		
 		this.connection = connection_;
 		
@@ -99,7 +98,7 @@ public class PlayerProfile {
 		}
 		
 	}
-	public PlayerProfile(ClientConnectionThread connection_, int id_, boolean friendlistLoad_) {
+	public PlayerProfile(ClientConnection connection_, int id_, boolean friendlistLoad_) {
 		
 		this.connection = connection_;
 		
@@ -144,7 +143,7 @@ public class PlayerProfile {
 			try {
 				do {
 					int friendID = rs.getInt("FriendID");
-					PlayerProfile friendProfile = ProfileHandler.getPlayerProfileByID(friendID);
+					PlayerProfile friendProfile = ProfileHandler.getPlayerProfile(friendID);
 					if(friendProfile == null) {
 						//OFFLINE
 						friendProfile = new PlayerProfile(null, friendID, true);
@@ -197,7 +196,7 @@ public class PlayerProfile {
 		for(PlayerProfile profile : this.friendlist) {
 			if(profile.getOnlineTimeInMin() != -1) {
 				//IS ONLINE
-				profile.getConnection().sendData(126, ServerConnection.getNewPacketId(), currentActivity);
+				profile.getConnection().sendData(126, currentActivity);
 			}
 		}
 	}
@@ -205,7 +204,7 @@ public class PlayerProfile {
 	public void setOnlineTimestamp(long onlineTimestamp) {
 		this.onlineTimestamp = onlineTimestamp;
 	}
-	public void setConnection(ClientConnectionThread connection) {
+	public void setConnection(ClientConnection connection) {
 		this.connection = connection;
 	}
 	
@@ -214,7 +213,7 @@ public class PlayerProfile {
 	}
 	
 	//GET
-	public ClientConnectionThread getConnection() {
+	public ClientConnection getConnection() {
 		return connection;
 	}
 	

@@ -6,7 +6,6 @@ import me.bejosch.battleprogress.server.Data.ServerGroupData;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.ServerGroupHandler;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
 
 public class ServerGroup {
 
@@ -59,7 +58,7 @@ public class ServerGroup {
 	public void sendDataToAllGroupPlayer(int signal, String data) {
 		
 		for(ServerPlayer player : this.players) {
-			player.getProfile().getConnection().sendData(signal, ServerConnection.getNewPacketId(), data);
+			player.getProfile().getConnection().sendData(signal, data);
 		}
 		
 	}
@@ -68,7 +67,7 @@ public class ServerGroup {
 		
 		if(players.isEmpty() == false && players.contains(player) == false) {
 			//PLAYER AT POSITION 0 (SO FIRST ONE) IS HOST
-			player.getProfile().getConnection().sendData(300, ServerConnection.getNewPacketId(), ""+this.players.get(0).getId());
+			player.getProfile().getConnection().sendData(300, ""+this.players.get(0).getId());
 		}
 		
 	}
@@ -108,7 +107,7 @@ public class ServerGroup {
 				//NO ONE LEFT IN THIS GROUP
 				this.removeGroup();
 			}else {
-				player.getProfile().getConnection().sendData(304, ServerConnection.getNewPacketId(), ""+player.getId()); //SEPERATE SENDING BECAUSE OF INFINIT LOOPS
+				player.getProfile().getConnection().sendData(304, ""+player.getId()); //SEPERATE SENDING BECAUSE OF INFINIT LOOPS
 				sendDataToAllGroupPlayer(304, ""+player.getId());
 			}
 			

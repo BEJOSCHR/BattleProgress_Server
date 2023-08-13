@@ -5,8 +5,7 @@ import java.util.List;
 
 import me.bejosch.battleprogress.server.Data.DatabaseData;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
-import me.bejosch.battleprogress.server.Objects.ClientConnectionThread;
+import me.bejosch.battleprogress.server.Objects.ClientConnection;
 import me.bejosch.battleprogress.server.Objects.UpgradeDataContainer;
 
 public class UpgradeDataHandler {
@@ -37,7 +36,7 @@ public class UpgradeDataHandler {
 		
 	}
 	
-	public static void updateUpgradesForClient(ClientConnectionThread client) {
+	public static void updateUpgradesForClient(ClientConnection client) {
 		
 		//111 UpgradeType, cost, effectValue
 		
@@ -47,10 +46,10 @@ public class UpgradeDataHandler {
 		
 	}
 	
-	public static void sendUpgradeDataContainer(UpgradeDataContainer container, ClientConnectionThread client) {
+	public static void sendUpgradeDataContainer(UpgradeDataContainer container, ClientConnection client) {
 		
 		String data = container.upgradeType+";"+container.researchCost+";"+container.effectValue;
-		client.sendData(111, ServerConnection.getNewPacketId(), data);
+		client.sendData(111, data);
 				
 	}
 	

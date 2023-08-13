@@ -14,7 +14,6 @@ import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.ServerGameHandler;
 import me.bejosch.battleprogress.server.Handler.ServerGroupHandler;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
-import me.bejosch.battleprogress.server.Main.ServerConnection;
 
 public class ServerGame {
 
@@ -147,7 +146,7 @@ public class ServerGame {
 			player.resetRoundReady();
 			player.resetSendAllTasks();
 			player.resetExecAllTasks();
-			player.getProfile().getConnection().sendData(620, ServerConnection.getNewPacketId(), data);
+			player.getProfile().getConnection().sendData(620, data);
 		}
 		
 	}
@@ -305,9 +304,9 @@ public class ServerGame {
 	
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	//SENDING
-	public void sendDataToAllGamePlayer(int signal, int id, String data) {
+	public void sendDataToAllGamePlayer(int signal, String data) {
 		for(ServerPlayer player : this.playerList) {
-			player.getProfile().getConnection().sendData(signal, id, data);
+			player.getProfile().getConnection().sendData(signal, data);
 		}
 	}
 	
@@ -333,7 +332,7 @@ public class ServerGame {
 						for(ServerPlayer player : playerList) {
 							player.resetRoundReady();
 						}
-						sendDataToAllGamePlayer(652, ServerConnection.getNewPacketId(), "All clients are ready!");
+						sendDataToAllGamePlayer(652, "All clients are ready!");
 						ConsoleOutput.printMessageInConsole(getId(), "All player are ready! ("+readyPlayer+"/"+getPlayerCount()+")", true);
 						startSendWaitTimer();
 					}
@@ -355,7 +354,7 @@ public class ServerGame {
 	 */
 	public void playerIsRoundReady(int playerID) {
 		
-		sendDataToAllGamePlayer(650, ServerConnection.getNewPacketId(), ""+playerID);
+		sendDataToAllGamePlayer(650, ""+playerID);
 		
 	}
 //==========================================================================================================
@@ -364,7 +363,7 @@ public class ServerGame {
 	 */
 	public void playerIsRound_UN_Ready(int playerID) {
 		
-		sendDataToAllGamePlayer(651, ServerConnection.getNewPacketId(), ""+playerID);
+		sendDataToAllGamePlayer(651, ""+playerID);
 		
 	}
 //==========================================================================================================
@@ -391,7 +390,7 @@ public class ServerGame {
 							player.resetSendAllTasks();
 							totalTasks += player.getCurrendRoundLogs().size();
 						}
-						sendDataToAllGamePlayer(653, ServerConnection.getNewPacketId(), "All tasks transfered!");
+						sendDataToAllGamePlayer(653, "All tasks transfered!");
 						ConsoleOutput.printMessageInConsole(getId(), "All tasks transfered! (Total: "+totalTasks+")", true);
 						executeRoundTasks();
 						handleRemoveActionsOnRoundChange();
@@ -580,7 +579,7 @@ public class ServerGame {
 							player.resetExecAllTasks();
 							player.resetCurrentRoundLog(); //RESET ROUND LOGS AS WELL
 						}
-						sendDataToAllGamePlayer(654, ServerConnection.getNewPacketId(), "All tasks executed!");
+						sendDataToAllGamePlayer(654, "All tasks executed!");
 						ConsoleOutput.printMessageInConsole(getId(), "All tasks executed! (Blocked: "+blockedActionsForThisRound+")", true);
 						usedFieldsForThisRound.clear();
 						blockedActionsForThisRound = 0;
@@ -616,7 +615,7 @@ public class ServerGame {
 		}
 		
 		// chatMessageNumber ; message
-		sendDataToAllGamePlayer(660, ServerConnection.getNewPacketId(), chatMessageNumber+";"+chatMessage);
+		sendDataToAllGamePlayer(660, chatMessageNumber+";"+chatMessage);
 		this.actionLog.add(new GameAction(senderID, GameActionType.CHATMESSAGE, this.roundNumber, chatMessage, chatMessageNumber));
 		
 		chatMessageNumber++;
@@ -632,7 +631,7 @@ public class ServerGame {
 	public void sendFieldPing(int pingerID, int x, int y) {
 		
 		String data = pingerID+";"+x+";"+y;
-		sendDataToAllGamePlayer(661, ServerConnection.getNewPacketId(), data);
+		sendDataToAllGamePlayer(661, data);
 		this.actionLog.add(new GameAction(pingerID, GameActionType.FIELDPING, this.roundNumber, x, y, -1, -1, -1));
 		
 	}

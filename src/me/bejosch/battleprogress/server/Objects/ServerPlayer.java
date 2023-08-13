@@ -22,7 +22,7 @@ public class ServerPlayer {
 	
 	public ServerPlayer(int id) {
 		
-		this.profile = ProfileHandler.getPlayerProfileByID(id);
+		this.profile = ProfileHandler.getPlayerProfile(id);
 		
 		ServerPlayerData.onlinePlayer.add(this);
 	}
