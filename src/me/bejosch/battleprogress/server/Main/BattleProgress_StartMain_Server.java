@@ -1,20 +1,5 @@
 package me.bejosch.battleprogress.server.Main;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-
 import me.bejosch.battleprogress.server.Connection.MinaServer;
 import me.bejosch.battleprogress.server.Data.StandardData;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
@@ -31,10 +16,6 @@ public class BattleProgress_StartMain_Server {
 	 * With this methode everything starts ;D
 	 */
 	public static void main(String[] args) {
-		//IDENTIFICATION SECURE
-		
-		//SERVERCONNECTION:
-		//https://www.youtube.com/watch?v=l4_JIIrMhIQ
 		
 		int max = 8;
 		
@@ -65,48 +46,6 @@ public class BattleProgress_StartMain_Server {
 		
 		ConsoleOutput.printMessageInConsole("8/"+max+" init server socket", true);
 		MinaServer.initConnection();
-		
-	}
-
-//==========================================================================================================
-	/**
-	 * The SSLContext with the battleprogress.identification identification key
-	 * @return SSLContext - The context
-	 */
-	public static SSLContext getSSLCOntext() {
-		
-		SSLContext sslContext = null;
-		
-		try {
-			
-			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-			KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-			InputStream keystoreStream = BattleProgress_StartMain_Server.class.getResourceAsStream("Identification/battleprogress.identification");
-			//ConsoleOutput.printMessageInConsole("Identification Datei: "+keystoreStream, true);
-			keystore.load(keystoreStream, "benno2001".toCharArray());
-			trustManagerFactory.init(keystore);
-			KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-			kmf.init(keystore, "benno2001".toCharArray());
-			KeyManager[] keyManagers =kmf.getKeyManagers();
-			TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-			sslContext = SSLContext.getInstance("SSL");
-			sslContext.init(keyManagers, trustManagers, null);
-			
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		} catch (CertificateException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (UnrecoverableKeyException e) {
-			e.printStackTrace();
-		}
-		
-		return sslContext;
 		
 	}
 	

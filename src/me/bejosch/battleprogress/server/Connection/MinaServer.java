@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
+import org.apache.mina.core.filterchain.IoFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
@@ -20,7 +21,11 @@ public class MinaServer {
 		try {
 			acceptor = new NioSocketAcceptor();
 //			acceptor.getFilterChain().addLast("logger", new LoggingFilter()); //USED TO GET DEBUG LOG IN CONSOLE
-			acceptor.getFilterChain().addLast("codec",  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(ConnectionData.ENCODING)))); 
+			TextLineCodecFactory factory = new TextLineCodecFactory(Charset.forName(ConnectionData.ENCODING));
+			factory.setDecoderMaxLineLength(ConnectionData.BUFFER_SIZE);
+			factory.setEncoderMaxLineLength(ConnectionData.BUFFER_SIZE);
+			IoFilter codec = new ProtocolCodecFilter(factory);
+			acceptor.getFilterChain().addLast("codec", codec); 
 			acceptor.setHandler(new MinaServerEvents());
 			acceptor.bind(new InetSocketAddress(ConnectionData.PORT));
 			ConsoleOutput.printMessageInConsole("ServerConnection is now running!", true);
@@ -43,7 +48,6 @@ public class MinaServer {
 		if(acceptor != null) {
 			acceptor.unbind();
 			acceptor.dispose();
-			acceptor = null;
 		}
 		
 	}

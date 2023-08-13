@@ -29,7 +29,7 @@ public class UnitStatsContainer {
 	private void loadUnitStats(String databaseTabelle, String unitName) {
 		
 		this.name = unitName;
-		this.kürzel = DatabaseHandler.selectString(databaseTabelle, "K�rzel", "Name", unitName);
+		this.kürzel = DatabaseHandler.selectString(databaseTabelle, "Kürzel", "Name", unitName);
 		this.kosten = DatabaseHandler.selectInt(databaseTabelle, "Kosten", "Name", unitName);
 		this.leben = DatabaseHandler.selectInt(databaseTabelle, "Leben", "Name", unitName);
 		this.energieVerbrauch = DatabaseHandler.selectInt(databaseTabelle, "EnergieVerbrauch", "Name", unitName);
