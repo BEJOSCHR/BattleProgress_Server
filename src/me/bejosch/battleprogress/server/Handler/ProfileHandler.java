@@ -169,6 +169,7 @@ public class ProfileHandler {
 	
 	public static PlayerProfile getOfflineProfile(String name) {
 		
+		name = DatabaseHandler.makeStringDBSave(name);
 		if(DatabaseHandler.selectInt(DatabaseData.tabellName_profile, "ID", "Name", name) != -1) {
 			//PROFILE FOUND
 			return new PlayerProfile(null, name, true);
@@ -182,6 +183,7 @@ public class ProfileHandler {
 	//CHECK
 	public static boolean isNameUsed(String name) {
 		
+		name = DatabaseHandler.makeStringDBSave(name);
 		if(DatabaseHandler.selectInt(DatabaseData.tabellName_profile, "ID", "Name", name) == -1) {
 			//UNKNOWN NAME SO NO ID
 			return false;
@@ -191,46 +193,55 @@ public class ProfileHandler {
 		}
 		
 	}
-
+	
 	//REGISTER / LOGIN
 	public static void createNewProfile(String name, String password, ClientConnection clientConnectionThread) {
 		
-		if(isNameUsed(name) == false) {
-			//NAME IS FREE
-			DatabaseHandler.insertNewPlayer(DatabaseData.tabellName_profile, name, password);
-			PlayerProfile profile = new PlayerProfile(clientConnectionThread, name, false);
-			ServerPlayer player = new ServerPlayer(profile);
-			new ServerGroup(player);
-			clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully registered!");
+		if(name.equals(DatabaseHandler.makeStringDBSave(name)) && password.equals(DatabaseHandler.makeStringDBSave(password))) {
+			//SQL SAVE
+			if(isNameUsed(name) == false) {
+				//NAME IS FREE
+				DatabaseHandler.insertNewPlayer(DatabaseData.tabellName_profile, name, password);
+				PlayerProfile profile = new PlayerProfile(clientConnectionThread, name, false);
+				ServerPlayer player = new ServerPlayer(profile);
+				new ServerGroup(player);
+				clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully registered!");
+			}else {
+				clientConnectionThread.sendData(201, "Username already used!");
+			}
 		}else {
-			clientConnectionThread.sendData(201, "Username already used!");
+			clientConnectionThread.sendData(201, "Invalid input!");
 		}
 		
 	}
 
 	public static void checkProfileLogin(String name, String password, ClientConnection clientConnectionThread) {
 		
-		if(isNameUsed(name) == true) {
-			//NAME IS VALID
-			if(getPlayerProfile(name) == null) {
-				//NAME IS NOT ONLINE
-				String realName = DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Name", "Name", name);
-				if(DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Password", "Name", name).equals(password)) {
-					//PASSWORD CORRECT
-					PlayerProfile profile = new PlayerProfile(clientConnectionThread, realName, false);
-					ServerPlayer player = new ServerPlayer(profile);
-					new ServerGroup(player);
-					clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully logged in!");
+		if(name.equals(DatabaseHandler.makeStringDBSave(name)) && password.equals(DatabaseHandler.makeStringDBSave(password))) {
+			//SQL SAVE
+			if(isNameUsed(name) == true) {
+				//NAME IS VALID
+				if(getPlayerProfile(name) == null) {
+					//NAME IS NOT ONLINE
+					String realName = DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Name", "Name", name);
+					if(DatabaseHandler.selectString(DatabaseData.tabellName_profile, "Password", "Name", name).equals(password)) {
+						//PASSWORD CORRECT
+						PlayerProfile profile = new PlayerProfile(clientConnectionThread, realName, false);
+						ServerPlayer player = new ServerPlayer(profile);
+						new ServerGroup(player);
+						clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully logged in!");
+					}else {
+						clientConnectionThread.sendData(201, "Incorrect password!");
+					}
 				}else {
-					clientConnectionThread.sendData(201, "Incorrect password!");
+					clientConnectionThread.sendData(201, "Already logged in!");
 				}
 			}else {
-				clientConnectionThread.sendData(201, "Already logged in!");
+				clientConnectionThread.sendData(201, "Unknown username!");
 			}
 		}else {
 			clientConnectionThread.sendData(201, "Unknown username!");
 		}
-		
 	}
 	
 }

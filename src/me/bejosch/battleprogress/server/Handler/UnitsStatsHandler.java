@@ -75,7 +75,9 @@ public class UnitsStatsHandler {
 	
 	public static void sendUnitContainer(UnitStatsContainer container, ClientConnection client) {
 		
-		String data = container.name+";"+container.kürzel+";"+container.kosten+";"+container.leben+";"+container.energieVerbrauch+";"+container.energieProduktion+";"+container.materialProduktion+";"+container.schaden+";"+container.viewDistance+";"+container.moveDistance+";"+container.actionDistance+";"+container.heal+";"+container.repair+";"+container.research;
+		String descriptionData_en = container.description_en[0]+";"+container.description_en[1]+";"+container.description_en[2]+";"+container.description_en[3];
+		String descriptionData_de = container.description_de[0]+";"+container.description_de[1]+";"+container.description_de[2]+";"+container.description_de[3];
+		String data = container.name+";"+container.kürzel+";"+container.kosten+";"+container.leben+";"+container.energieVerbrauch+";"+container.energieProduktion+";"+container.materialProduktion+";"+container.schaden+";"+container.viewDistance+";"+container.moveDistance+";"+container.actionDistance+";"+container.heal+";"+container.repair+";"+container.research+";"+descriptionData_en+";"+descriptionData_de;
 		client.sendData(110, data);
 				
 	}

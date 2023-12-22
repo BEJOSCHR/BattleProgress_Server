@@ -4,47 +4,47 @@ import java.awt.Color;
 
 public enum FieldType {
 
-	Gras,
-	Water,
-	Stone,
+	Flatland,
+	Ocean,
+	Mountain,
 	Path,
 	Ressource,
-	RessourceVerbraucht;
+	Consumed;
 	
 	public static FieldType getFieldTypeFromSignal(String number) {
 		
 		switch(number) {
 		case "g":
-			return Gras;
+			return Flatland;
 		case "w":
-			return Water;
+			return Ocean;
 		case "s":
-			return Stone;
+			return Mountain;
 		case "p":
 			return Path;
 		case "r":
 			return Ressource;
 		case "v":
-			return RessourceVerbraucht;
+			return Consumed;
 		}
-		return Gras;
+		return Flatland;
 		
 	}
 	
 	public static String getShortcutForFieldType(FieldType type) {
 		
 		switch(type) {
-		case Gras:
+		case Flatland:
 			return "g";
-		case Water:
+		case Ocean:
 			return "w";
-		case Stone:
+		case Mountain:
 			return "s";
 		case Path:
 			return "p";
 		case Ressource:
 			return "r";
-		case RessourceVerbraucht:
+		case Consumed:
 			return "v";
 		default:
 			break;
@@ -56,17 +56,17 @@ public enum FieldType {
 	public static Color getMiniMapColorForFieldType(FieldType type) {
 		
 		switch(type) {
-		case Gras:
+		case Flatland:
 			return new Color(34, 139, 34, 100);
-		case Water:
+		case Ocean:
 			return new Color(0, 0, 238, 100);
-		case Stone:
+		case Mountain:
 			return new Color(193, 205, 205, 100);
 		case Path:
 			return new Color(139, 71, 38, 100);
 		case Ressource:
 			return new Color(255, 215, 0, 100);
-		case RessourceVerbraucht:
+		case Consumed:
 			return new Color(0, 0, 0, 100);
 		default:
 			break;

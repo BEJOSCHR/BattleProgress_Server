@@ -38,7 +38,7 @@ public class Map {
 		
 		for(int x = 0 ; x < ServerData.mapWidth ; x++) {
 			for(int y = 0 ; y < ServerData.mapHight ; y++) {
-				fieldList[x][y] = new Field(FieldType.Gras, x, y);
+				fieldList[x][y] = new Field(FieldType.Flatland, x, y);
 			}
 		}
 		
@@ -95,7 +95,7 @@ public class Map {
 				
 				Field field = fieldList[x][y];
 				
-				if(field.type != FieldType.Gras) {
+				if(field.type != FieldType.Flatland) {
 					if(output.length() > 2) { //NICHT DAS ERSTE FELD
 						output = output+"-"+FieldType.getShortcutForFieldType(field.type)+":"+field.X+":"+field.Y;
 					}else { //DAS ERSTE FELD OHNE -

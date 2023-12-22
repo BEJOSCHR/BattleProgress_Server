@@ -24,7 +24,7 @@ public class UpgradeDataHandler {
 		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "ReactorProduction2") );
 		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "ReactorProduction3") );
 		
-		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "Converter") );
+		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "UnlockConverter") );
 		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "ConverterEfficiency1") );
 		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "ConverterEfficiency2") );
 		upgrades.add( new UpgradeDataContainer(DatabaseData.tabellName_upgrades, "ConverterProduction1") );
@@ -48,7 +48,10 @@ public class UpgradeDataHandler {
 	
 	public static void sendUpgradeDataContainer(UpgradeDataContainer container, ClientConnection client) {
 		
-		String data = container.upgradeType+";"+container.researchCost+";"+container.effectValue;
+		String descriptionData_en = container.description_en[0]+";"+container.description_en[1]+";"+container.description_en[2]+";"+container.description_en[3];
+		String descriptionData_de = container.description_de[0]+";"+container.description_de[1]+";"+container.description_de[2]+";"+container.description_de[3];
+		
+		String data = container.upgradeType+";"+container.researchCost+";"+container.effectValue+";"+descriptionData_en+";"+descriptionData_de;
 		client.sendData(111, data);
 				
 	}

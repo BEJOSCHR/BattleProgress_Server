@@ -56,6 +56,19 @@ public class DatabaseHandler {
 		
 	}
 	
+	public static String makeStringDBSave(String input) {
+		
+		String[] badParts = {";", "(", ")", "{", "}", "*", "--", "=", "\"","\'", "\\"};
+		String replacment = "#";
+		
+		for(String badPart : badParts) {
+			input = input.replace(badPart, replacment);
+		}
+		
+		return input;
+		
+	}
+	
 	private static void keepConnectionTimer() {
 		//START PING TIMER TO PREVENT BROKEN PIPE TIMEOUT
 		DatabaseData.keepConnectionTimer = new Timer();
@@ -94,6 +107,23 @@ public class DatabaseHandler {
 		}
 		
 	}
+	public static String selectString(String tabelle, String target, String keyName, String key, String keyName2, String key2) {
+		
+		try {
+			String query = "SELECT "+target+" FROM "+tabelle+" where "+keyName+"='"+key+"' AND "+keyName2+"='"+key2+"'";
+			PreparedStatement stmt = DatabaseData.con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+			ResultSet rs = stmt.executeQuery();
+			rs.first();
+			String result = rs.getString(target);
+			rs.close();
+			stmt.close();
+			return result;
+		} catch (SQLException error) {
+			//error.printStackTrace(); //MANCHMAL ABSICHTILICHE FEHLER ABFRAGEN ZUM TESTEN
+			return null;
+		}
+		
+	}
 	public static int selectInt(String tabelle, String target, String keyName, String key) {
 		
 		try {
@@ -111,10 +141,44 @@ public class DatabaseHandler {
 		}
 		
 	}
+	public static int selectInt(String tabelle, String target, String keyName, String key, String keyName2, String key2) {
+		
+		try {
+			String query = "SELECT "+target+" FROM "+tabelle+" where "+keyName+"='"+key+"' AND "+keyName2+"='"+key2+"'";
+			PreparedStatement stmt = DatabaseData.con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+			ResultSet rs = stmt.executeQuery();
+			rs.first();
+			int result = rs.getInt(target);
+			rs.close();
+			stmt.close();
+			return result;
+		} catch (SQLException error) {
+			//error.printStackTrace();
+			return -1;
+		}
+		
+	}
 	public static double selectDouble(String tabelle, String target, String keyName, String key) {
 		
 		try {
 			String query = "SELECT "+target+" FROM "+tabelle+" where "+keyName+"='"+key+"'";
+			PreparedStatement stmt = DatabaseData.con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+			ResultSet rs = stmt.executeQuery();
+			rs.first();
+			double result = rs.getDouble(target);
+			rs.close();
+			stmt.close();
+			return result;
+		} catch (SQLException error) {
+			//error.printStackTrace();
+			return -1.0;
+		}
+		
+	}
+	public static double selectDouble(String tabelle, String target, String keyName, String key, String keyName2, String key2) {
+		
+		try {
+			String query = "SELECT "+target+" FROM "+tabelle+" where "+keyName+"='"+key+"' AND "+keyName2+"='"+key2+"'";
 			PreparedStatement stmt = DatabaseData.con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			ResultSet rs = stmt.executeQuery();
 			rs.first();

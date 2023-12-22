@@ -18,6 +18,8 @@ import me.bejosch.battleprogress.server.Data.ServerPlayerData;
 import me.bejosch.battleprogress.server.Data.StandardData;
 import me.bejosch.battleprogress.server.Funktions.Funktions;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
+import me.bejosch.battleprogress.server.Handler.DictionaryInfoHandler;
+import me.bejosch.battleprogress.server.Handler.FieldDataHandler;
 import me.bejosch.battleprogress.server.Handler.ServerGameHandler;
 import me.bejosch.battleprogress.server.Handler.ServerPlayerHandler;
 import me.bejosch.battleprogress.server.Handler.ServerQueueHandler;
@@ -160,7 +162,7 @@ public class ConsoleOutput {
 		printMessageInConsole("'/groups [quantity] ' - Shows the list of active groups", true);
 		printMessageInConsole("'/packets ' - Join the packet session so you see the traffic of packets", true);
 		printMessageInConsole("'/overview ' - Gives a general overview about everything interesting", true);
-		printMessageInConsole("'/update [units|upgrades] ' - Reloads the units or the upgrades from the DB", true);
+		printMessageInConsole("'/update [units|upgrades|fields|dictionary] ' - Reloads the units, the upgrades, the fieldData or the dictionary from the DB", true);
 		printMessageInConsole("'/stop ' - Stoppes the whole server", true);
 		
 	}
@@ -341,6 +343,7 @@ public class ConsoleOutput {
 		printMessageInConsole("Active Groups: "+ServerGroupData.activeGroups.size(), true);
 		printMessageInConsole("Loaded units: (B:"+UnitsStatsHandler.buildings.size()+"|L:"+UnitsStatsHandler.troups_land.size()+"|A:"+UnitsStatsHandler.troups_air.size()+")", true);
 		printMessageInConsole("Loaded upgrades: "+UpgradeDataHandler.upgrades.size(), true);
+		printMessageInConsole("Loaded dictionaryInfos: "+DictionaryInfoHandler.dictionaryInfos.size(), true);
 		
 	}
 	
@@ -356,11 +359,19 @@ public class ConsoleOutput {
 				//UPGRADES
 				ConsoleOutput.printMessageInConsole("Updating upgrades...", true);
 				UpgradeDataHandler.updateUpgradeList(true);
+			}else if(inputs.get(1).equalsIgnoreCase("fields")) {
+				//FIELDS
+				ConsoleOutput.printMessageInConsole("Updating fieldData...", true);
+				FieldDataHandler.updateFieldDataList(true);
+			}else if(inputs.get(1).equalsIgnoreCase("dictionary")) {
+				//DICTIONARY
+				ConsoleOutput.printMessageInConsole("Updating dictionaryInfos...", true);
+				DictionaryInfoHandler.updateDictionaryInfoList(true);
 			}else {
-				printMessageInConsole("/update [units|upgrades]", true);
+				printMessageInConsole("/update [units|upgrades|fields|dictionary]", true);
 			}
 		}else {
-			printMessageInConsole("/update [units|upgrades]", true);
+			printMessageInConsole("/update [units|upgrades|fields|dictionary]", true);
 		}
 		
 	}

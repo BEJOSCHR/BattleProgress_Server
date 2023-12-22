@@ -4,7 +4,7 @@ import me.bejosch.battleprogress.server.Enum.FieldType;
 
 public class Field {
 
-	public FieldType type = FieldType.Gras;
+	public FieldType type = FieldType.Flatland;
 	public int X = 0;
 	public int Y = 0;
 	

@@ -3,6 +3,8 @@ package me.bejosch.battleprogress.server.Main;
 import me.bejosch.battleprogress.server.Connection.MinaServer;
 import me.bejosch.battleprogress.server.Data.StandardData;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
+import me.bejosch.battleprogress.server.Handler.DictionaryInfoHandler;
+import me.bejosch.battleprogress.server.Handler.FieldDataHandler;
 import me.bejosch.battleprogress.server.Handler.FileHandler;
 import me.bejosch.battleprogress.server.Handler.MapHandler;
 import me.bejosch.battleprogress.server.Handler.ServerQueueHandler;
@@ -17,7 +19,7 @@ public class BattleProgress_StartMain_Server {
 	 */
 	public static void main(String[] args) {
 		
-		int max = 8;
+		int max = 10;
 		
 		ConsoleOutput.printMessageInConsole("Starting BattleProgress Server...", true);
 		StandardData.timeSinceStartup = System.currentTimeMillis();
@@ -37,14 +39,20 @@ public class BattleProgress_StartMain_Server {
 		ConsoleOutput.printMessageInConsole("5/"+max+" load Upgrades from DB", true);
 		UpgradeDataHandler.updateUpgradeList(true);
 		
-		ConsoleOutput.printMessageInConsole("6/"+max+" start queue waiting timer", true);
+		ConsoleOutput.printMessageInConsole("6/"+max+" load DictionaryInfo from DB", true);
+		DictionaryInfoHandler.updateDictionaryInfoList(true);
+		
+		ConsoleOutput.printMessageInConsole("7/"+max+" load FieldData from DB", true);
+		FieldDataHandler.updateFieldDataList(true);
+		
+		ConsoleOutput.printMessageInConsole("8/"+max+" start queue waiting timer", true);
 		ServerQueueHandler.startQueueWaitTimer();
 		
-		ConsoleOutput.printMessageInConsole("7/"+max+" start input scanner", true);
+		ConsoleOutput.printMessageInConsole("9/"+max+" start input scanner", true);
 		ConsoleOutput.startUserInputScanner();
 		ConsoleOutput.printMessageInConsole("Type '/help' for console commands!", true);
 		
-		ConsoleOutput.printMessageInConsole("8/"+max+" init server socket", true);
+		ConsoleOutput.printMessageInConsole("10/"+max+" init server socket", true);
 		MinaServer.initConnection();
 		
 	}

@@ -17,10 +17,17 @@ public class DatabaseData {
 	public static final String tabellName_troupAir = "Unit_Troup_Air";
 	public static final String tabellName_buildings = "Unit_Buildings";
 	
+	public static final String tabellName_description = "Descriptions";
+	public static final String tabellName_dictionaryInfo = "DictionaryInfo";
+	public static final String tabellName_language = "Language";
+	
 	public static final String tabellName_upgrades = "Upgrades";
 	public static final String tabellName_profile = "Profile";
 	public static final String tabellName_stats = "Stats";
 	public static final String tabellName_friendlist = "Friends";
 	public static final String tabellName_friendRequests = "FriendRequests";
+	
+	public static final String language_en = "EN";
+	public static final String language_de = "DE";
 	
 }

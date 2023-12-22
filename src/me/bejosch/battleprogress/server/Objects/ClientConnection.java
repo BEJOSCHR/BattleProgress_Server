@@ -9,6 +9,8 @@ import me.bejosch.battleprogress.server.Data.ConnectionData;
 import me.bejosch.battleprogress.server.Data.DatabaseData;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
+import me.bejosch.battleprogress.server.Handler.DictionaryInfoHandler;
+import me.bejosch.battleprogress.server.Handler.FieldDataHandler;
 import me.bejosch.battleprogress.server.Handler.ProfileHandler;
 import me.bejosch.battleprogress.server.Handler.ServerGameHandler;
 import me.bejosch.battleprogress.server.Handler.ServerPlayerHandler;
@@ -48,7 +50,7 @@ public class ClientConnection {
 		}catch(NullPointerException | NumberFormatException error) {
 			//IGNORE DATA WITH WRONG SYNTAX
 			ConsoleOutput.printMessageInConsole(-1, "Wrong syntax data received! ["+message+"]", true);
-			error.printStackTrace();
+//			error.printStackTrace();
 		}
 		
 	}
@@ -78,7 +80,7 @@ public class ClientConnection {
 	 */
 	public void recieveDataFromClient(int signal, int id, String data) {
 			
-		int[] signalBlackList = {103, 105, 106, 112, 997};
+		int[] signalBlackList = {103, 105, 106, 112, 997, 699};
 		List<Integer> noConsoleOutput = new ArrayList<>();
 		for(int i : signalBlackList) {noConsoleOutput.add(i);}
 		
@@ -114,6 +116,16 @@ public class ClientConnection {
 		//Upgrade update request
 		case 111:
 			UpgradeDataHandler.updateUpgradesForClient(this);
+			break;
+//========================================================================
+		//DictionaryInfo update request
+		case 112:
+			DictionaryInfoHandler.updateDictionaryInfoForClient(this);
+			break;
+//========================================================================
+		//FieldData update request
+		case 113:
+			FieldDataHandler.updateFieldDataForClient(this);
 			break;
 //========================================================================
 		//Player Data Request
@@ -232,11 +244,11 @@ public class ClientConnection {
 			player.getProfile().getConnection().sendData(139, ""+removedID);
 			break;
 //========================================================================
-		//Chat Message
+		//Chat Message Menu
 		case 140:
 			//ReceiverID ; Message
 			int receiverID = Integer.parseInt(content[0]);
-			String message = content[1];
+			String message = DatabaseHandler.makeStringDBSave(content[1]);
 			PlayerProfile receiverProfile = ProfileHandler.getPlayerProfile(receiverID);
 			if(receiverProfile != null) {
 				receiverProfile.getConnection().sendData(140, player.getId()+";"+message);
@@ -473,7 +485,7 @@ public class ClientConnection {
 		//CHAT MESSAGE
 		case 660:
 			// message
-			game.sendChatMessage(player.getId(), player.getProfile().getName(), data);
+			game.sendChatMessage(player.getId(), player.getProfile().getName(), DatabaseHandler.makeStringDBSave(data));
 			break;
 //========================================================================
 		//FIELD PING
@@ -482,6 +494,14 @@ public class ClientConnection {
 			int fieldX = Integer.parseInt(content[0]);
 			int fieldY = Integer.parseInt(content[1]);
 			game.sendFieldPing(player.getId(), fieldX, fieldY);
+			break;
+//========================================================================
+		//CLIENT GAME PING
+		case 699:
+			// SendTimeStamp
+			long sendTimestamp = Long.parseLong(data);
+			int ping = (int) ( (System.currentTimeMillis()-sendTimestamp)/2.0);
+			game.updatePlayerPing(player.getId(), ping);
 			break;
 //========================================================================
 		//CheckConnection Answer

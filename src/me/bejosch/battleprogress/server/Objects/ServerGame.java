@@ -30,6 +30,7 @@ public class ServerGame {
 	private Timer playerReadyTimer = null;
 	private Timer sendTaskWaitTimer = null;
 	private Timer execTaskWaitTimer = null;
+	private Timer pingUpdateTimer = null;
 	
 	private List<ServerPlayer> playerList = new ArrayList<ServerPlayer>();
 	private List<ServerBuilding> buildings = new ArrayList<ServerBuilding>();
@@ -149,6 +150,9 @@ public class ServerGame {
 			player.getProfile().getConnection().sendData(620, data);
 		}
 		
+		//START PING UPDATE TIMER
+		startPingUpdateTimer();
+		
 	}
 	
 	//CANCLE/DELETE GAME START
@@ -158,6 +162,7 @@ public class ServerGame {
 		stopPlayerReadyTimer();
 		stopSendWaitTimer();
 		stopExecWaitTimer();
+		stopPingUpdateTimer();
 		
 		if(this.isRunning() == false) {
 			//IN ACCEPT PHASE - Try rejoin Queues
@@ -601,6 +606,30 @@ public class ServerGame {
 	
 //==========================================================================================================
 	/**
+	 * Starts the timer which checks whether all clients has send all their tasks
+	 */
+	private void startPingUpdateTimer() {
+		if(this.pingUpdateTimer == null) {
+			this.pingUpdateTimer = new Timer();
+			this.pingUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					
+					sendDataToAllGamePlayer(699, ""+System.currentTimeMillis());
+					
+				}
+			}, 0, 1000*3);
+		}
+	}
+	private void stopPingUpdateTimer() {
+		if(this.pingUpdateTimer != null) {
+			this.pingUpdateTimer.cancel();
+			this.pingUpdateTimer = null;
+		}
+	}
+	
+//==========================================================================================================
+	/**
 	 * Send a chatMessage to all players
 	 * @param senderName - String - The name of the sender
 	 * @param message - String - The message witch should be sent
@@ -633,6 +662,19 @@ public class ServerGame {
 		String data = pingerID+";"+x+";"+y;
 		sendDataToAllGamePlayer(661, data);
 		this.actionLog.add(new GameAction(pingerID, GameActionType.FIELDPING, this.roundNumber, x, y, -1, -1, -1));
+		
+	}
+	
+//==========================================================================================================
+	/**
+	 * Send a ping update of a player to all other player
+	 * @param pingID - Integer - The ID of the player
+	 * @param ping - Integer - The ping of the player
+	 */
+	public void updatePlayerPing(int pingerID, int ping) {
+		
+		String data = pingerID+";"+ping;
+		sendDataToAllGamePlayer(699, data);
 		
 	}
 	
