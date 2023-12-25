@@ -1,6 +1,7 @@
 package me.bejosch.battleprogress.server.Objects;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -673,8 +674,10 @@ public class ServerGame {
 	 */
 	public void updatePlayerPing(int pingerID, int ping) {
 		
-		String data = pingerID+";"+ping;
-		sendDataToAllGamePlayer(699, data);
+		try {
+			String data = pingerID+";"+ping;
+			sendDataToAllGamePlayer(699, data);
+		}catch(IndexOutOfBoundsException | ConcurrentModificationException error) {}
 		
 	}
 	
