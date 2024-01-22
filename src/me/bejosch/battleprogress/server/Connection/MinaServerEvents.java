@@ -39,6 +39,7 @@ public class MinaServerEvents extends IoHandlerAdapter {
 		}else {
 			for(ClientConnection connection : ConnectionData.clientConnectionList) {
 				if(connection.session == session) {
+					ConnectionData.clientConnectionList.remove(connection);
 					ConsoleOutput.printMessageInConsole("Client without login disconnected!", true);
 					return;
 				}

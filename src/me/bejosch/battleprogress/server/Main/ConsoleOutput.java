@@ -33,6 +33,8 @@ import me.bejosch.battleprogress.server.Objects.ServerPlayer;
 public class ConsoleOutput {
 
 	public static Timer ConsoleInputScanner = new Timer();
+
+	public static int lastCreatedGameID = -1;
 	
 //==========================================================================================================
 	/**
@@ -172,10 +174,12 @@ public class ConsoleOutput {
 		if(inputs.size() >= 2) {
 			try {
 				int id = Integer.parseInt(inputs.get(1));
-				if(ServerGameHandler.getGameByID(id) != null) {
+				ServerGame game = ServerGameHandler.getGameByID(id);
+				if(game != null) {
 					//KNOW GAME
 					printBlankLineInConsole();
 					printMessageInConsole("Joined game session for game ["+id+"]", true);
+					printMessageInConsole("-> "+game.getInfoAsString(), true);
 					printBlankLineInConsole();
 					ConsoleData.focusedGameID = id;
 				}else {
@@ -186,7 +190,17 @@ public class ConsoleOutput {
 				printMessageInConsole("/game [ID]", true);
 			}
 		}else {
-			printMessageInConsole("/game [ID]", true);
+			ServerGame game = ServerGameHandler.getGameByID(lastCreatedGameID);
+			if(game != null) {
+				//USE LAST CREATED GAME
+				printBlankLineInConsole();
+				printMessageInConsole("Joined last created game session for game ["+game.getId()+"]", true);
+				printMessageInConsole("-> "+game.getInfoAsString(), true);
+				printBlankLineInConsole();
+				ConsoleData.focusedGameID = game.getId();
+			}else {
+				printMessageInConsole("No game created yet!", true);
+			}
 		}
 		
 	}
@@ -195,7 +209,7 @@ public class ConsoleOutput {
 		
 		if(ServerGameData.runningGames.isEmpty()) {
 			//EMPTY
-			printMessageInConsole("There are no running games at the moment!", true);
+			printMessageInConsole("There are no games at the moment!", true);
 			return;
 		}
 		

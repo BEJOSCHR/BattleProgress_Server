@@ -2,6 +2,8 @@ package me.bejosch.battleprogress.server.Objects;
 
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -10,6 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import me.bejosch.battleprogress.server.Data.ConsoleData;
 import me.bejosch.battleprogress.server.Data.ServerGameData;
 import me.bejosch.battleprogress.server.Enum.GameActionType;
+import me.bejosch.battleprogress.server.Enum.GameFinishCause;
 import me.bejosch.battleprogress.server.Enum.GameStatus;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.ServerGameHandler;
@@ -28,14 +31,18 @@ public class ServerGame {
 	private int roundNumber = 1;
 	private boolean isRunning = false;
 	
+	private HashMap<ServerPlayer, Integer> disconnectedPlayer = new HashMap<>();
+
+	private Timer reconnectTimer = null;
 	private Timer playerReadyTimer = null;
 	private Timer sendTaskWaitTimer = null;
 	private Timer execTaskWaitTimer = null;
 	private Timer pingUpdateTimer = null;
 	
-	private List<ServerPlayer> playerList = new ArrayList<ServerPlayer>();
+	private LinkedList<ServerPlayer> playerList = new LinkedList<ServerPlayer>();
 	private List<ServerBuilding> buildings = new ArrayList<ServerBuilding>();
 	private List<ServerTroup> troups = new ArrayList<ServerTroup>();
+	private List<ServerResearch> research = new ArrayList<ServerResearch>();
 	
 	private int currentFirstPlayerPos = 0;
 	private CopyOnWriteArrayList<GameAction> actionLog = new CopyOnWriteArrayList<GameAction>(); //ALL ACTIONS ARE LOGGED IN HERE
@@ -58,6 +65,7 @@ public class ServerGame {
 		
 		ServerGameData.runningGames.add(this);
 		ConsoleOutput.printMessageInConsole("CREATED GAME "+getId()+" ["+getType()+"] ON MAP '"+map.name+"'", true);
+		ConsoleOutput.lastCreatedGameID = this.getId();
 		checkAllAccept();
 	}
 	public ServerGame(ServerPlayer host, Map map) {
@@ -71,6 +79,7 @@ public class ServerGame {
 		
 		ServerGameData.runningGames.add(this);
 		ConsoleOutput.printMessageInConsole("CREATED GAME "+getId()+" ["+getType()+"] ON MAP '"+map.name+"' WITH HOST '"+host.getProfile().getName()+"'", true);
+		ConsoleOutput.lastCreatedGameID = this.getId();
 	}
 	
 	private void checkAllAccept() {
@@ -104,13 +113,14 @@ public class ServerGame {
 		
 	}
 	
-	//START (queued) GAMEL
+	//START (queued) GAME
 	public void startQueuedGame() {
 		
 		ConsoleOutput.printMessageInConsole("STARTED GAME "+getId()+" ["+getType()+"] WITH "+getPlayerCount()+" PLAYER!", true);
 		ConsoleOutput.printMessageInConsole(getId(), "STARTED GAME "+getId()+" ["+getType()+"] WITH "+getPlayerCount()+" PLAYER!", true);
 		
 		this.isRunning = true;
+		this.status = GameStatus.INGAME;
 		
 		sendGameDataToPlayer();
 		startPlayerReadyTimer();
@@ -124,6 +134,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "STARTED GAME "+getId()+" ["+getType()+"] WITH "+getPlayerCount()+" PLAYER!", true);
 		
 		this.isRunning = true;
+		this.status = GameStatus.INGAME;
 		
 		sendGameDataToPlayer();
 		startPlayerReadyTimer();
@@ -190,9 +201,6 @@ public class ServerGame {
 					}
 				}
 			}
-		}else {
-			//SEND INGAME ABORT
-			//TODO SEND PLAYER ABORT/LEAVE PACKET (so they switch to main menu
 		}
 		
 		for(ServerPlayer player : this.getPlayerList()) {
@@ -256,34 +264,31 @@ public class ServerGame {
 		
 		ServerPlayer player = this.getPlayerById(playerId);
 		if(player != null) {
-			int positionOfPlayer = player.getPositionInGame();
-			this.playerList.remove(player);
-			player.removeFromGame();
-			
-			//UPDATE OTHER PLAYER POS IF GAME IS NOT RUNNING YET
 			if(this.isRunning() == false) {
+				//UPDATE OTHER PLAYER POS IF GAME IS NOT RUNNING YET
+				
+				this.playerList.remove(player);
+				player.removeFromGame();
 				for(ServerPlayer otherPlayer : this.playerList) {
-					if(otherPlayer.getPositionInGame() > positionOfPlayer) {
+					if(otherPlayer.getPositionInGame() > player.getPositionInGame()) {
 						otherPlayer.decreasePositionInGame();
 					}
 				}
-			}
-			
-			//CHECK ENDING
-			if(this.getPlayerCount() == 2) {
-				if(this.getType() == GameType.Normal_2v2 || this.getType() == GameType.Custom_2v2) {
-					//2v2
-					//TODO CHECK FOR 2v2 IF A WHOLE TEAM HAS LEFT!!! -> Check via game position number of the players
-					//TODO IF YES THE REMAING TEAM WINS
-				}
-			}else if(this.getPlayerCount() == 1) {
-				//TODO LAST PLAYER WINS
-				//TODO
-				ConsoleOutput.printMessageInConsole("ONLY ONE PLAYER ("+this.playerList.get(0).getProfile().getName()+") IS LEFT IN GAME "+getId()+" ["+getType()+"] ("+getPlayerCount()+")", true);
-				ConsoleOutput.printMessageInConsole(getId(), "ONLY ONE PLAYER ("+this.playerList.get(0).getProfile().getName()+") IS LEFT IN GAME "+getId()+" ["+getType()+"] ("+getPlayerCount()+")", true);
-			}else if(this.getPlayerCount() == 0) {
-				//NO PLAYER
-				this.deleteGame();
+				
+			}else if(this.status == GameStatus.INGAME) {
+				//GAME IS RUNNING AND NOT FINISHED - CHECK ENDING
+				
+				disconnectedPlayer.put(player, ServerGameData.reconnectTimeSec);
+				startReconnectTimer();
+				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") DISCONNECTED", true);
+				this.sendDataToAllGamePlayer(695, ""+player.getId());
+				
+			}else {
+				//IS RUNNING, BUT NOT INGAME -> FINISHED
+				
+				this.playerList.remove(player);
+				player.removeFromGame();
+				
 			}
 			
 			return true;
@@ -291,6 +296,69 @@ public class ServerGame {
 		
 		return false;
 	}
+	public boolean reconnectPlayer(ServerPlayer player) {
+		
+		for(int i = 0 ; i < this.playerList.size() ; i++) {
+			ServerPlayer p = this.playerList.get(i);
+			if(p.getId() == player.getId()) {
+				this.playerList.add(i, player); //INSERT NEW PLAYER AS REPLACEMENT TO OLD ONE AT SAME POSITION
+				this.playerList.remove(i+1); //THEN REMOVE OLD PLAYER WHICH GOT PUSHED TO THE RIGHT BY ONE
+				disconnectedPlayer.remove(player); //REMOVE FROM RECONNECT LIST
+				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") RECONNECTED", true);
+				
+				//TODO START GAME PROGRESS SYNCING
+				//AFTER SYNC FINISHED:
+				this.sendDataToAllGamePlayer(696, ""+player.getId());
+				
+				return true;
+			}
+		}
+		
+		ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT", true);
+		ConsoleOutput.printMessageInConsole("PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT TO GAME "+getId()+" ["+getType()+"]", true);
+		return false;
+		
+	}
+	
+//==========================================================================================================
+	/**
+	 * Starts the timer which checks if a client exceeded its reconnect time
+	 */
+	private void startReconnectTimer() {
+		if(this.reconnectTimer == null) {
+			this.reconnectTimer = new Timer();
+			this.reconnectTimer.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					
+					if(disconnectedPlayer.isEmpty()) { stopReconnectTimer(); }
+					
+					try {
+						for(ServerPlayer player : disconnectedPlayer.keySet()) {
+							int sec = disconnectedPlayer.get(player);
+							
+							if(sec == 1) {
+								//NO MORE RECONNECT AWAITING
+								finishGame(player.getId(), GameFinishCause.DISCONNECT);
+								stopReconnectTimer();
+								break;
+							}else {
+								disconnectedPlayer.replace(player, sec, sec-1);
+							}
+						}
+					}catch(ConcurrentModificationException error) {}
+					
+				}
+			}, 0, 1000);
+		}
+	}
+	private void stopReconnectTimer() {
+		if(this.reconnectTimer != null) {
+			this.reconnectTimer.cancel();
+			this.reconnectTimer = null;
+		}
+	}
+	
 	public ServerPlayer getPlayerById(int playerId) {
 		for(ServerPlayer player : this.playerList) {
 			if(player.getId() == playerId) {
@@ -312,7 +380,11 @@ public class ServerGame {
 	//SENDING
 	public void sendDataToAllGamePlayer(int signal, String data) {
 		for(ServerPlayer player : this.playerList) {
-			player.getProfile().getConnection().sendData(signal, data);
+			if(player != null && player.getProfile() != null && player.getProfile().getConnection() != null) {
+				player.getProfile().getConnection().sendData(signal, data);
+			}else {
+				ConsoleOutput.printMessageInConsole("Couldn't send package to player! ("+this.id+"-"+(player!=null?player.getId():"null")+"-"+signal+"|"+data+")", true);
+			}
 		}
 	}
 	
@@ -681,13 +753,27 @@ public class ServerGame {
 		
 	}
 	
+	/**
+	 * Used to sync researched upgrades between players, spectators and the round log
+	 * @param playerID - Integer - The ID of the player, who researched the upgrade
+	 * @param upgradeName - String - The name of the unlocked upgrade
+	 */
+	public void updateUpgradeResearch(int playerID, String upgradeName) {
+		
+		sendDataToAllGamePlayer(610, playerID+";"+upgradeName);
+		this.research.add(new ServerResearch(playerID, upgradeName, this.roundNumber));
+		this.actionLog.add(new GameAction(playerID, GameActionType.RESEARCH, this.roundNumber, upgradeName, 0));
+		ConsoleOutput.printMessageInConsole(getId(), "	UPGRADE RESEARCH "+upgradeName+" by "+playerID, true);
+		
+	}
+	
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	//ACTIONS
 	public void addBuild(ServerPlayer player, String name, int x, int y) {
 		player.addCurrentRoundLog(new GameAction(player.getId(), GameActionType.BUILD, this.roundNumber, name, x, y, -1, -1, -1));
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Build "+name+" on "+x+":"+y+" by "+player.getId(), true);
 	}
-	private void execBuild(GameAction action) {
+	public void execBuild(GameAction action) {
 		ServerBuilding building = new ServerBuilding(action.x, action.y, action.text, action.playerId);
 		this.buildings.add(building);
 		this.actionLog.add(action);
@@ -818,12 +904,22 @@ public class ServerGame {
 	private void handleRemoveActionsOnRoundChange() {
 		
 		int deaths = 0;
+		int hqDestroyedID = -1;
 		
 		for(ServerBuilding building : this.toRemoveBuildings) {
 			this.buildings.remove(building);
 			this.actionLog.add(new GameAction(building.playerId, GameActionType.DEATH, this.roundNumber, building.X, building.Y, -1, -1, -1));
 			ConsoleOutput.printMessageInConsole(getId(), "	Death-B on "+building.X+":"+building.Y+" by "+building.playerId, true);
 			deaths++;
+			if(building.name.equalsIgnoreCase("Headquarter")) {
+				if(hqDestroyedID == -1) {
+					//NO HQ DESTROYED YET
+					hqDestroyedID = building.playerId;
+				}else {
+					//SAME ROUND ANOTHER HQ DESTROYED
+					hqDestroyedID = -99;
+				}
+			}
 		}
 		this.toRemoveBuildings.clear();
 		
@@ -837,9 +933,61 @@ public class ServerGame {
 		
 		ConsoleOutput.printMessageInConsole(getId(), "	Deaths executed (Total: "+deaths+")", true);
 		
+		//CHECK FOR HQ DESTROYED
+		if(hqDestroyedID == -99) {
+			//GAME DRAW
+			this.finishGame(-99, GameFinishCause.DRAW);
+		}else if(hqDestroyedID != -1) {
+			//WINNER WINNER, CHICKEN DINNER
+			this.finishGame(hqDestroyedID, GameFinishCause.HQ_DESTROY);
+		}
 		
 	}
 
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	//GAME FINISH
+	public void requestSurrender(ServerPlayer requester) {
+		for(ServerPlayer player : this.getAlliedPlayers(requester)) {
+			if(player.getId() != requester.getId()) {
+				//ALLIED, NOT THE REQUESTER
+				player.getProfile().getConnection().sendData(691, "Requested surrender");
+			}
+		}
+	}
+	
+	
+	public void finishGame(int loserID, GameFinishCause cause) {
+		
+		ConsoleOutput.printMessageInConsole("GAME "+this.id+" FINISHED! Cause: "+cause, true);
+		ConsoleOutput.printMessageInConsole(this.getId(), "GAME "+this.id+" FINISHED! Cause: "+cause+" - Loser: "+loserID, true);
+		
+		this.status = GameStatus.FINISHED;
+		
+		this.stopExecWaitTimer();
+		this.stopPlayerReadyTimer();
+		this.stopSendWaitTimer();
+		this.stopPingUpdateTimer();
+		this.stopReconnectTimer();
+		
+		if(cause == GameFinishCause.DRAW) {
+			//NO WINNER / LOSER
+			
+			//TODO SEND 690 GAME FINISH WITH ALL DATA
+			
+		}else {
+			//WITH WINNER / LOSER
+			List<ServerPlayer> winner = getEnemyPlayers(loserID);
+			List<ServerPlayer> loser = getAlliedPlayers(loserID);
+			
+			//TODO SEND 690 GAME FINISH WITH ALL DATA
+			
+			//TODO CALCULATE RP (ONLY IF RANKED) AND LEVEL GAINS/LOSES AND SEND IT TO EACH PLAYER WITH HIS DATA
+			
+		}
+		
+	}
+	
+	
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	public ServerBuilding getBuilding(int x, int y) {
@@ -863,10 +1011,97 @@ public class ServerGame {
 	//GETTER
 	public String getInfoAsString() {
 		if(this.type == GameType.Custom_1v1 || this.type == GameType.Custom_2v2) {
-			return "["+this.id+"] "+this.type+" - Running: "+this.isRunning+" - PlayerCount: "+this.getPlayerCount()+" - RoundNumber: "+this.roundNumber+" - Actions: "+this.actionLog.size()+" - Map: "+this.map.name+" - Host: "+this.host.getProfile().getName();
+			return "["+this.id+"] "+this.type+" - Running: "+this.isRunning+" - PlayerCount: "+this.getPlayerCount()+" ("+this.disconnectedPlayer.size()+") - RoundNumber: "+this.roundNumber+" - Actions: "+this.actionLog.size()+" - Map: "+this.map.name+" - Host: "+this.host.getProfile().getName();
 		}else {
-			return "["+this.id+"] "+this.type+" - Running: "+this.isRunning+" - PlayerCount: "+this.getPlayerCount()+" - RoundNumber: "+this.roundNumber+" - Actions: "+this.actionLog.size()+" - Map: "+this.map.name;
+			return "["+this.id+"] "+this.type+" - Running: "+this.isRunning+" - PlayerCount: "+this.getPlayerCount()+" ("+this.disconnectedPlayer.size()+") - RoundNumber: "+this.roundNumber+" - Actions: "+this.actionLog.size()+" - Map: "+this.map.name;
 		}
+	}
+	
+	public List<ServerPlayer> getAlliedPlayers(ServerPlayer player) { return getAlliedPlayers(player.getId()); }
+	public List<ServerPlayer> getAlliedPlayers(int playerID) {
+		
+		if(this.type != null) {
+			List<ServerPlayer> output = new ArrayList<>();
+			if(GameType.isModus1v1(this.type)) {
+				//1v1
+				if(this.playerList.get(0).getId() == playerID) {
+					//Player1
+					output.add(this.playerList.get(0));
+				}else if(this.playerList.get(1).getId() == playerID) {
+					//Player2
+					output.add(this.playerList.get(1));
+				}else {
+					ConsoleOutput.printMessageInConsole("Getting allied player found no matching player! (1v1 - ID: "+playerID+")", true);
+				}
+			}else {
+				//2v2
+				if(this.playerList.get(0).getId() == playerID) {
+					//Player1
+					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(1));
+				}else if(this.playerList.get(1).getId() == playerID) {
+					//Player2
+					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(1));
+				}else if(this.playerList.get(2).getId() == playerID) {
+					//Player3
+					output.add(this.playerList.get(2));
+					output.add(this.playerList.get(3));
+				}else if(this.playerList.get(3).getId() == playerID) {
+					//Player4
+					output.add(this.playerList.get(2));
+					output.add(this.playerList.get(3));
+				}else {
+					ConsoleOutput.printMessageInConsole("Getting allied player found no matching player! (2v2 - ID: "+playerID+")", true);
+				}
+			}
+			return output;
+		}
+		return null;
+		
+	}
+	public List<ServerPlayer> getEnemyPlayers(ServerPlayer player) { return getEnemyPlayers(player.getId()); }
+	public List<ServerPlayer> getEnemyPlayers(int playerID) {
+		
+		if(this.type != null) {
+			List<ServerPlayer> output = new ArrayList<>();
+			if(GameType.isModus1v1(this.type)) {
+				//1v1
+				if(this.playerList.get(0).getId() == playerID) {
+					//Player1
+					output.add(this.playerList.get(1));
+				}else if(this.playerList.get(1).getId() == playerID) {
+					//Player2
+					output.add(this.playerList.get(0));
+				}else {
+					ConsoleOutput.printMessageInConsole("Getting enemy player found no matching player! (1v1 - ID: "+playerID+")", true);
+				}
+			}else {
+				//2v2
+				if(this.playerList.get(0).getId() == playerID) {
+					//Player1
+					output.add(this.playerList.get(2));
+					output.add(this.playerList.get(3));
+				}else if(this.playerList.get(1).getId() == playerID) {
+					//Player2
+					output.add(this.playerList.get(2));
+					output.add(this.playerList.get(3));
+				}else if(this.playerList.get(2).getId() == playerID) {
+					//Player3
+					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(1));
+				}else if(this.playerList.get(3).getId() == playerID) {
+					//Player4
+					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(1));
+				}else {
+					ConsoleOutput.printMessageInConsole("Getting enemy player found no matching player! (2v2 - ID: "+playerID+")", true);
+				}
+			}
+			return output;
+		}
+		return null;
+		
 	}
 	
 	public ServerPlayer getHost() {
@@ -895,6 +1130,9 @@ public class ServerGame {
 	}
 	public List<ServerTroup> getTroups() {
 		return troups;
+	}
+	public List<ServerResearch> getResearch() {
+		return research;
 	}
 	public List<ServerPlayer> getPlayerList() {
 		return playerList;

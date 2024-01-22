@@ -87,6 +87,7 @@ public class ProfileHandler {
 		}
 		ServerPlayerData.onlinePlayer.remove(player);
 		ProfileData.onlineProfiles.remove(profile);
+		profile.invalidateConnection(); //MAKE SENDING IMPOSSIBLE
 		
 		//SEND FriendList - OFFLINE
 		for(PlayerProfile friendProfile : profile.getFriendlist()) {
@@ -204,8 +205,14 @@ public class ProfileHandler {
 				DatabaseHandler.insertNewPlayer(DatabaseData.tabellName_profile, name, password);
 				PlayerProfile profile = new PlayerProfile(clientConnectionThread, name, false);
 				ServerPlayer player = new ServerPlayer(profile);
-				new ServerGroup(player);
+				
 				clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully registered!");
+				
+				//CHECK FOR GAME RECONNECT
+				//Cant be, its a first time register
+				
+				new ServerGroup(player);
+				
 			}else {
 				clientConnectionThread.sendData(201, "Username already used!");
 			}
@@ -228,8 +235,17 @@ public class ProfileHandler {
 						//PASSWORD CORRECT
 						PlayerProfile profile = new PlayerProfile(clientConnectionThread, realName, false);
 						ServerPlayer player = new ServerPlayer(profile);
-						new ServerGroup(player);
+						
 						clientConnectionThread.sendData(200, profile.convertThisPlayerProfileToString()+";Successfully logged in!");
+						
+						//CHECK FOR GAME RECONNECT
+						ServerGame game = ServerGameHandler.getGameByPlayerID(profile.getId());
+						if(game != null) {
+							game.reconnectPlayer(player);
+						}else {
+							new ServerGroup(player);
+						}
+						
 					}else {
 						clientConnectionThread.sendData(201, "Incorrect password!");
 					}

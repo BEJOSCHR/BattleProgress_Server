@@ -6,6 +6,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import me.bejosch.battleprogress.server.Data.ConnectionData;
 import me.bejosch.battleprogress.server.Data.DatabaseData;
 import me.bejosch.battleprogress.server.Enum.PlayerRanking;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
@@ -162,7 +163,7 @@ public class PlayerProfile {
 	
 	//CONVERT TO STRING (TODO NEEDS MORE DATA AS DATE ETC.)
 	public String convertThisPlayerProfileToString() {
-		//ID ; Name ; Level ; XP ; Online Min (-1 wenn offline) ; SN ; PIN ; BIN ; NCN ; SN ; RANKING ; RP ; currentActivity
+		//ID ; Name ; Level ; XP ; Online Min (-1 wenn offline) ; PIN ; BIN ; NCN ; SN ; RANKING ; RP ; currentActivity
 		String data = this.getId()+";"+this.getName()+";"+this.getLevel()+";"+this.getXP()+";"+this.getOnlineTimeInMin()+";"+this.getProfileImageNumber()+";"+this.getBackgroundImageNumber()+";"+this.getNameColorNumber()+";"+this.getStatusNumber()+";"+this.getRanking()+";"+this.getRankingPoints()+";"+this.currentActivity;
 		return data;
 	}
@@ -206,6 +207,12 @@ public class PlayerProfile {
 	}
 	public void setConnection(ClientConnection connection) {
 		this.connection = connection;
+	}
+	public void invalidateConnection() {
+		if(this.connection != null) {
+			ConnectionData.clientConnectionList.remove(this.connection);
+			this.connection = null;
+		}
 	}
 	
 	public void setMarkedForDisconnect(boolean markedForDisconnect) {

@@ -7,6 +7,8 @@ import org.apache.mina.core.session.IoSession;
 
 import me.bejosch.battleprogress.server.Data.ConnectionData;
 import me.bejosch.battleprogress.server.Data.DatabaseData;
+import me.bejosch.battleprogress.server.Enum.GameActionType;
+import me.bejosch.battleprogress.server.Enum.GameFinishCause;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.DatabaseHandler;
 import me.bejosch.battleprogress.server.Handler.DictionaryInfoHandler;
@@ -445,16 +447,25 @@ public class ClientConnection {
 			game.addUpgrade(player, troupName_7, startX_7, startY_7, goalX_7, goalY_7);
 			
 			break;
+//========================================================================
+		//RESEARCH UNLOCK SYNC
+		case 610:
+			//researchName
+			String researchName = data;
+			game.updateUpgradeResearch(player.getId(), researchName);
+			break;
+//========================================================================
 		// 620 - GAME START
 //========================================================================
-		//Create Headquarter
+		//Create special Building (Headquarter)
 		case 621:
 			// buildingName ; X ; Y
-			String buildingName_HQ = content[0];
+			String buildingName_2 = content[0];
 			int X1 = Integer.parseInt(content[1]);
 			int Y1 = Integer.parseInt(content[2]);
-			new ServerBuilding(X1, Y1, buildingName_HQ, player.getId());
-			game.sendDataToAllGamePlayer(621, player.getId()+";"+buildingName_HQ+";"+X1+";"+Y1);
+			int roundNumber = (buildingName_2.equals("Headquarter") ? 0 : game.getRoundNumber()); //HQ always build at round 0
+			game.execBuild(new GameAction(player.getId(), GameActionType.BUILD, roundNumber, buildingName_2, X1, Y1, -1, -1, -1));
+			game.sendDataToAllGamePlayer(621, player.getId()+";"+buildingName_2+";"+X1+";"+Y1);
 			break;
 //========================================================================
 		//Client is ready for this round
@@ -494,6 +505,28 @@ public class ClientConnection {
 			int fieldX = Integer.parseInt(content[0]);
 			int fieldY = Integer.parseInt(content[1]);
 			game.sendFieldPing(player.getId(), fieldX, fieldY);
+			break;
+//========================================================================
+		//GAME SURRENDER
+		case 690:
+			// -
+			game.finishGame(player.getId(), GameFinishCause.SURRENDER);
+			break;
+//========================================================================
+		//GAME SURRENDER REQUEST
+		case 691:
+			// -
+			game.requestSurrender(player);
+			break;
+//========================================================================
+		//GAME DISCONNECT INFO (ONLY SEND)
+		case 695:
+			// -
+			break;
+//========================================================================
+		//GAME RECONNECT INFO (ONLY SEND)
+		case 696:
+			// -
 			break;
 //========================================================================
 		//CLIENT GAME PING

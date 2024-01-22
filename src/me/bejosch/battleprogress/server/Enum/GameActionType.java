@@ -11,6 +11,8 @@ public enum GameActionType {
 	DEATH,
 	REMOVE,
 	
+	RESEARCH,
+	
 	CHATMESSAGE,
 	FIELDPING;
 	
