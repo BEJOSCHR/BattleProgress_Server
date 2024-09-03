@@ -6,9 +6,10 @@ import java.util.Timer;
 public class DatabaseData {
 
 	public static final String DBname = "BattleProgress";
-	public static final String url = "jdbc:mysql://localhost:3306/"+DBname;
-	public static final String user = "BattleProgress";
-	public static final String pw = "1991";
+	public static final String paras = "serverTimezone=UTC&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false";
+	public static final String url = "jdbc:mysql://localhost:3306/"+DBname+"?"+paras;
+	public static final String user = "battleprogress";
+	public static final String pw = "dJwos8!7h29hI-is34f";
 	
 	public static Connection con = null;
 	public static Timer keepConnectionTimer = null;

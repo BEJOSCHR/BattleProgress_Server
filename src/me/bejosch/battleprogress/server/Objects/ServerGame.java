@@ -307,6 +307,7 @@ public class ServerGame {
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") RECONNECTED", true);
 				
 				//TODO START GAME PROGRESS SYNCING
+				
 				//AFTER SYNC FINISHED:
 				this.sendDataToAllGamePlayer(696, ""+player.getId());
 				
@@ -382,7 +383,7 @@ public class ServerGame {
 		for(ServerPlayer player : this.playerList) {
 			if(player != null && player.getProfile() != null && player.getProfile().getConnection() != null) {
 				player.getProfile().getConnection().sendData(signal, data);
-			}else {
+			}else if(!this.disconnectedPlayer.containsKey(player)) {
 				ConsoleOutput.printMessageInConsole("Couldn't send package to player! ("+this.id+"-"+(player!=null?player.getId():"null")+"-"+signal+"|"+data+")", true);
 			}
 		}

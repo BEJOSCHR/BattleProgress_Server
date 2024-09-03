@@ -29,8 +29,8 @@ public class DatabaseHandler {
 				ConsoleOutput.printMessageInConsole("Start aborted! Database connection needed for unit and upgrade stats...", true);
 				ConsoleOutput.printMessageInConsole("Connecting to DB failed!", true);
 //				ConsoleOutput.printMessageInConsole("Connecting to DB failed with following error:", true);
-//				error.printStackTrace();
-				System.exit(-1);
+				error.printStackTrace();
+//				System.exit(-1);
 			}
 			
 		}else {
