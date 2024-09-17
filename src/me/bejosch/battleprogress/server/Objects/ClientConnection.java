@@ -529,8 +529,26 @@ public class ClientConnection {
 			// -
 			break;
 //========================================================================
-		//CLIENT GAME PING
+		//GAME SYNC FINISHED (ONLY SEND)
+		case 697:
+			// -
+			break;
+//========================================================================
+		//GAME SYNC DATA - General Game Data (ONLY SEND)
+		case 698:
+			// -
+			break;
+		//GAME SYNC DATA - RoundNumber
 		case 699:
+			// -
+			break;
+		//GAME SYNC DATA - RoundNumber
+		case 700:
+			// -
+			break;
+//========================================================================
+		//CLIENT GAME PING
+		case 801:
 			// SendTimeStamp
 			long sendTimestamp = Long.parseLong(data);
 			int ping = (int) ( (System.currentTimeMillis()-sendTimestamp)/2.0);

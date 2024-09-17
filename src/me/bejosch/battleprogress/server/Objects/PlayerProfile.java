@@ -197,7 +197,7 @@ public class PlayerProfile {
 		for(PlayerProfile profile : this.friendlist) {
 			if(profile.getOnlineTimeInMin() != -1) {
 				//IS ONLINE
-				profile.getConnection().sendData(126, currentActivity);
+				profile.getConnection().sendData(126, this.id+";"+currentActivity);
 			}
 		}
 	}

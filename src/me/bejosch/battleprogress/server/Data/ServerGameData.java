@@ -25,6 +25,6 @@ public class ServerGameData {
 	public static List<ServerGame> runningGames = new ArrayList<ServerGame>();
 	public static List<ServerGame> oldFinishedGames = new ArrayList<ServerGame>(); //KEPT FOR REVIEW - POSSIBE?
 	
-	public static final int reconnectTimeSec = 60;
+	public static final int reconnectTimeSec = 5*60;
 	
 }

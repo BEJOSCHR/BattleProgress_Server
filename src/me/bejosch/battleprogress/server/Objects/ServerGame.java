@@ -23,15 +23,17 @@ public class ServerGame {
 
 	private int id;
 	private GameType type;
+	private String statusDescription = "";
 	private Map map;
 	
 	private ServerPlayer host = null; //IS SET TO NULL FOR NONE CUSTOM GAME
 	
 	private GameStatus status = GameStatus.LOBBY;
 	private int roundNumber = 1;
-	private boolean isRunning = false;
+	private boolean isRunning = false, isRoundChange = false;
 	
 	private HashMap<ServerPlayer, Integer> disconnectedPlayer = new HashMap<>();
+	private List<ServerPlayer> awaitReconnect = new ArrayList<ServerPlayer>();
 
 	private Timer reconnectTimer = null;
 	private Timer playerReadyTimer = null;
@@ -47,6 +49,7 @@ public class ServerGame {
 	private int currentFirstPlayerPos = 0;
 	private CopyOnWriteArrayList<GameAction> actionLog = new CopyOnWriteArrayList<GameAction>(); //ALL ACTIONS ARE LOGGED IN HERE
 	//HAS TO BE COPYONWRITE BECAUSE ASYNC ADD FROM THE CONNECTIONS
+	private int executeID = 1; //Counted up for every execution
 	
 	private int blockedActionsForThisRound = 0;
 	private List<Field> usedFieldsForThisRound = new ArrayList<Field>();
@@ -61,6 +64,7 @@ public class ServerGame {
 		
 		this.id = ServerGameHandler.getNewGameId();
 		this.type = type;
+		this.statusDescription = "Ingame ("+this.type.toString().replace("_", " ")+")";
 		this.map = map;
 		
 		ServerGameData.runningGames.add(this);
@@ -75,6 +79,7 @@ public class ServerGame {
 		
 		this.id = ServerGameHandler.getNewGameId();
 		this.type = GameType.Custom_1v1;
+		this.statusDescription = "Ingame ("+this.type.toString().replace("_", " ")+")";
 		this.map = map;
 		
 		ServerGameData.runningGames.add(this);
@@ -145,6 +150,25 @@ public class ServerGame {
 	public void sendGameDataToPlayer() {
 		
 		//GameID ; GameModus ; PID1 ; PID2 ; PID3 ; PID4 ; MapName ; MapData
+		String data = getGameData();
+		
+		for(ServerPlayer player : this.getPlayerList()) {
+			player.resetCurrentRoundLog();
+			player.resetRoundReady();
+			player.resetSendAllTasks();
+			player.resetExecAllTasks();
+			player.getProfile().getConnection().sendData(620, data);
+			player.getProfile().setCurrentActivity(this.statusDescription);
+		}
+		
+		//START PING UPDATE TIMER
+		startPingUpdateTimer();
+		
+	}
+	
+	public String getGameData() {
+		
+		//GameID ; GameModus ; PID1 ; PID2 ; PID3 ; PID4 ; MapName ; MapData
 		String data = null;
 		if(GameType.isModus1v1(type)) {
 			//1v1
@@ -153,17 +177,7 @@ public class ServerGame {
 			//2v2
 			data = id+";"+type+";"+playerList.get(0).getId()+";"+playerList.get(1).getId()+";"+playerList.get(2).getId()+";"+playerList.get(3).getId()+";"+map.name+";"+map.convertFieldListIntoStringSyntax();
 		}
-		
-		for(ServerPlayer player : this.getPlayerList()) {
-			player.resetCurrentRoundLog();
-			player.resetRoundReady();
-			player.resetSendAllTasks();
-			player.resetExecAllTasks();
-			player.getProfile().getConnection().sendData(620, data);
-		}
-		
-		//START PING UPDATE TIMER
-		startPingUpdateTimer();
+		return data;
 		
 	}
 	
@@ -206,6 +220,7 @@ public class ServerGame {
 		for(ServerPlayer player : this.getPlayerList()) {
 			//REMOVE PLAYER FROM GAME
 			player.removeFromGame();
+			player.getProfile().setCurrentActivity("Online");
 		}
 		
 		if(this.isRunning() == false) {
@@ -281,7 +296,7 @@ public class ServerGame {
 				disconnectedPlayer.put(player, ServerGameData.reconnectTimeSec);
 				startReconnectTimer();
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") DISCONNECTED", true);
-				this.sendDataToAllGamePlayer(695, ""+player.getId());
+				this.sendDataToAllGamePlayer(695, ""+player.getId()+";"+ServerGameData.reconnectTimeSec);
 				
 			}else {
 				//IS RUNNING, BUT NOT INGAME -> FINISHED
@@ -291,6 +306,8 @@ public class ServerGame {
 				
 			}
 			
+			player.getProfile().setCurrentActivity("Online");
+			
 			return true;
 		}
 		
@@ -298,18 +315,28 @@ public class ServerGame {
 	}
 	public boolean reconnectPlayer(ServerPlayer player) {
 		
+		if(isRoundChange == true) {
+			//Currently round change, so wait with reconnect after finish
+			awaitReconnect.add(player);
+			ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") AWAITS RECONNECT", true);
+			return false;
+		}
+		
 		for(int i = 0 ; i < this.playerList.size() ; i++) {
 			ServerPlayer p = this.playerList.get(i);
 			if(p.getId() == player.getId()) {
+				
+				//INFORM PLAYER ABOUT INCOMMING RECONNECT/SYNC
+				player.getProfile().getConnection().sendData(696, ""+player.getId());
+				
+				//START GAME PROGRESS SYNCING
+				this.syncGameProgress(player);
+				
+				//ADD BACK TO GAME AT SAME POS
 				this.playerList.add(i, player); //INSERT NEW PLAYER AS REPLACEMENT TO OLD ONE AT SAME POSITION
 				this.playerList.remove(i+1); //THEN REMOVE OLD PLAYER WHICH GOT PUSHED TO THE RIGHT BY ONE
-				disconnectedPlayer.remove(player); //REMOVE FROM RECONNECT LIST
+				disconnectedPlayer.remove(p); //REMOVE OLD PLAYER FROM RECONNECT LIST
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") RECONNECTED", true);
-				
-				//TODO START GAME PROGRESS SYNCING
-				
-				//AFTER SYNC FINISHED:
-				this.sendDataToAllGamePlayer(696, ""+player.getId());
 				
 				return true;
 			}
@@ -318,6 +345,44 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT", true);
 		ConsoleOutput.printMessageInConsole("PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT TO GAME "+getId()+" ["+getType()+"]", true);
 		return false;
+		
+	}
+	
+	public boolean syncGameProgress(ServerPlayer player) {
+		
+		try {
+			
+			Thread.sleep(1000);
+			
+			//698 - General Data
+			player.getProfile().getConnection().sendData(698, this.getGameData());
+			
+			//Wait for reconnect client to load unit, profile, ... data [Gets loaded by the client on packet 698]
+			Thread.sleep(1000*8);
+			
+			//699 - roundNumber / executeID
+			player.getProfile().getConnection().sendData(699, this.getRoundNumber()+";"+this.executeID);
+			
+			Thread.sleep(1000);
+			
+			//700 - Actions
+			for(GameAction action : this.actionLog) {
+				player.getProfile().getConnection().sendData(700, action.getData());
+			}
+		
+			Thread.sleep(500);
+		
+			//697/697 - sync finished
+			player.getProfile().setCurrentActivity(this.statusDescription);
+			player.getProfile().getConnection().sendData(697, "Reconnect data complete!");
+			this.sendDataToAllGamePlayer(696, ""+player.getId()); //THIS GETS NOT SEND TO RECONNECTED PLAYER (not added to list yet)
+		
+			return true;
+		} catch (InterruptedException error) {
+			error.printStackTrace();
+			return false;
+		}
+			
 		
 	}
 	
@@ -406,13 +471,15 @@ public class ServerGame {
 							readyPlayer++;
 						}
 					}
-					if(readyPlayer == getPlayerCount()) {
+					if(readyPlayer == getPlayerCount() && disconnectedPlayer.isEmpty()) {
+						//ALL READY AND NO ONE DISCONNECTED
 						stopPlayerReadyTimer();
 						for(ServerPlayer player : playerList) {
 							player.resetRoundReady();
 						}
 						sendDataToAllGamePlayer(652, "All clients are ready!");
 						ConsoleOutput.printMessageInConsole(getId(), "All player are ready! ("+readyPlayer+"/"+getPlayerCount()+")", true);
+						isRoundChange = true;
 						startSendWaitTimer();
 					}
 					
@@ -664,6 +731,12 @@ public class ServerGame {
 						blockedActionsForThisRound = 0;
 						roundNumber++;
 						ConsoleOutput.printMessageInConsole(getId(), "# NEXT ROUND (ID: "+id+" ; Round: "+roundNumber+")", true);
+						isRoundChange = false;
+						//RECONNECT WAITING ONES
+						for(ServerPlayer p : awaitReconnect) {
+							reconnectPlayer(p);
+						}
+						awaitReconnect.clear();
 						startPlayerReadyTimer();
 					}
 					
@@ -689,7 +762,7 @@ public class ServerGame {
 				@Override
 				public void run() {
 					
-					sendDataToAllGamePlayer(699, ""+System.currentTimeMillis());
+					sendDataToAllGamePlayer(801, ""+System.currentTimeMillis());
 					
 				}
 			}, 0, 1000*3);
@@ -719,7 +792,9 @@ public class ServerGame {
 		
 		// chatMessageNumber ; message
 		sendDataToAllGamePlayer(660, chatMessageNumber+";"+chatMessage);
-		this.actionLog.add(new GameAction(senderID, GameActionType.CHATMESSAGE, this.roundNumber, chatMessage, chatMessageNumber));
+		GameAction chatAction = new GameAction(senderID, GameActionType.CHATMESSAGE, this.roundNumber, chatMessage, chatMessageNumber);
+		chatAction.setExecuteID(this.executeID++);
+		this.actionLog.add(chatAction);
 		
 		chatMessageNumber++;
 		
@@ -735,8 +810,9 @@ public class ServerGame {
 		
 		String data = pingerID+";"+x+";"+y;
 		sendDataToAllGamePlayer(661, data);
-		this.actionLog.add(new GameAction(pingerID, GameActionType.FIELDPING, this.roundNumber, x, y, -1, -1, -1));
-		
+		GameAction pingAction = new GameAction(pingerID, GameActionType.FIELDPING, this.roundNumber, x, y, -1, -1, -1);
+		pingAction.setExecuteID(this.executeID++);
+		this.actionLog.add(pingAction);
 	}
 	
 //==========================================================================================================
@@ -749,7 +825,7 @@ public class ServerGame {
 		
 		try {
 			String data = pingerID+";"+ping;
-			sendDataToAllGamePlayer(699, data);
+			sendDataToAllGamePlayer(801, data);
 		}catch(IndexOutOfBoundsException | ConcurrentModificationException error) {}
 		
 	}
@@ -763,7 +839,9 @@ public class ServerGame {
 		
 		sendDataToAllGamePlayer(610, playerID+";"+upgradeName);
 		this.research.add(new ServerResearch(playerID, upgradeName, this.roundNumber));
-		this.actionLog.add(new GameAction(playerID, GameActionType.RESEARCH, this.roundNumber, upgradeName, 0));
+		GameAction researchAction = new GameAction(playerID, GameActionType.RESEARCH, this.roundNumber, upgradeName, 0);
+		researchAction.setExecuteID(this.executeID++);
+		this.actionLog.add(researchAction);
 		ConsoleOutput.printMessageInConsole(getId(), "	UPGRADE RESEARCH "+upgradeName+" by "+playerID, true);
 		
 	}
@@ -775,6 +853,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Build "+name+" on "+x+":"+y+" by "+player.getId(), true);
 	}
 	public void execBuild(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerBuilding building = new ServerBuilding(action.x, action.y, action.text, action.playerId);
 		this.buildings.add(building);
 		this.actionLog.add(action);
@@ -785,6 +864,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Produce "+name+" on "+targetX+":"+targetY+" by "+player.getId(), true);
 	}
 	private void execProduce(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerTroup troup = new ServerTroup(action.newX, action.newY, action.text, action.playerId);
 		this.troups.add(troup);
 		this.actionLog.add(action);
@@ -795,6 +875,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Attack ("+amount+") from "+fromX+":"+fromY+" on "+targetX+":"+targetY+" by "+player.getId(), true);
 	}
 	private void execAttack(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerBuilding building = getBuilding(action.newX, action.newY);
 		if(building != null) {
 			//BUILDING
@@ -827,6 +908,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Move from "+oldX+":"+oldY+" to "+newX+":"+newY+" by "+player.getId(), true);
 	}
 	private void execMove(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerTroup troup = getTroup(action.x, action.y);
 		troup.X = action.newX;
 		troup.Y = action.newY;
@@ -838,6 +920,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Upgrade from "+fromX+":"+fromY+" on "+targetX+":"+targetY+" to "+name+" by "+player.getId(), true);
 	}
 	private void execUpgrade(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		//CHECK OLD TROUPS
 		ServerTroup troup1 = getTroup(action.x, action.y);
 		ServerTroup troup2 = getTroup(action.newX, action.newY);
@@ -856,6 +939,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Heal ("+amount+") on "+targetX+":"+targetY+" by "+player.getId(), true);
 	}
 	private void execHeal(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerBuilding building = getBuilding(action.newX, action.newY);
 		if(building != null) {
 			//BUILDING
@@ -883,6 +967,7 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	ADD Remove from "+x+":"+y+" by "+player.getId(), true);
 	}
 	private void execRemove(GameAction action) {
+		action.setExecuteID(this.executeID++);
 		ServerBuilding building = getBuilding(action.x, action.y);
 		if(building != null) {
 			//BUILDING
@@ -909,7 +994,9 @@ public class ServerGame {
 		
 		for(ServerBuilding building : this.toRemoveBuildings) {
 			this.buildings.remove(building);
-			this.actionLog.add(new GameAction(building.playerId, GameActionType.DEATH, this.roundNumber, building.X, building.Y, -1, -1, -1));
+			GameAction deathAction = new GameAction(building.playerId, GameActionType.DEATH, this.roundNumber, building.X, building.Y, -1, -1, -1);
+			deathAction.setExecuteID(this.executeID++);
+			this.actionLog.add(deathAction);
 			ConsoleOutput.printMessageInConsole(getId(), "	Death-B on "+building.X+":"+building.Y+" by "+building.playerId, true);
 			deaths++;
 			if(building.name.equalsIgnoreCase("Headquarter")) {
@@ -926,7 +1013,9 @@ public class ServerGame {
 		
 		for(ServerTroup troup : this.toRemoveTroups) {
 			this.troups.remove(troup);
-			this.actionLog.add(new GameAction(troup.playerId, GameActionType.DEATH, this.roundNumber, troup.X, troup.Y, -1, -1, -1));
+			GameAction deathAction = new GameAction(troup.playerId, GameActionType.DEATH, this.roundNumber, troup.X, troup.Y, -1, -1, -1);
+			deathAction.setExecuteID(this.executeID++);
+			this.actionLog.add(deathAction);
 			ConsoleOutput.printMessageInConsole(getId(), "	Death-T on "+troup.X+":"+troup.Y+" by "+troup.playerId, true);
 			deaths++;
 		}
@@ -1124,7 +1213,7 @@ public class ServerGame {
 		return status;
 	}
 	public int getPlayerCount() {
-		return this.playerList.size();
+		return this.playerList.size()-this.disconnectedPlayer.size();
 	}
 	public List<ServerBuilding> getBuildings() {
 		return buildings;
