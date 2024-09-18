@@ -534,17 +534,20 @@ public class ClientConnection {
 			// -
 			break;
 //========================================================================
-		//GAME SYNC DATA - General Game Data (ONLY SEND)
+		//GAME SYNC DATA - General Game Data (Done confirmation)
 		case 698:
-			// -
+			// GameID
+			ServerGameHandler.getGameByID(Integer.parseInt(data)).reconnect_generalDone(player);
 			break;
-		//GAME SYNC DATA - RoundNumber
+		//GAME SYNC DATA - RoundNumber (Done confirmation)
 		case 699:
-			// -
+			// GameID
+			ServerGameHandler.getGameByID(Integer.parseInt(data)).reconnect_metaDone(player);
 			break;
-		//GAME SYNC DATA - RoundNumber
+		//GAME SYNC DATA - RoundNumber (Done confirmation)
 		case 700:
-			// -
+			// GameID
+			ServerGameHandler.getGameByID(Integer.parseInt(data)).reconnect_actionDone(player);
 			break;
 //========================================================================
 		//CLIENT GAME PING

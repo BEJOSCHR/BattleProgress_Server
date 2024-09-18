@@ -293,6 +293,10 @@ public class ServerGame {
 			}else if(this.status == GameStatus.INGAME) {
 				//GAME IS RUNNING AND NOT FINISHED - CHECK ENDING
 				
+				if(player.isRoundReady()) { //IF READY, SET UNREADY
+					player.resetRoundReady();
+					this.playerIsRound_UN_Ready(player.getId());
+				}
 				disconnectedPlayer.put(player, ServerGameData.reconnectTimeSec);
 				startReconnectTimer();
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") DISCONNECTED", true);
@@ -306,83 +310,71 @@ public class ServerGame {
 				
 			}
 			
-			player.getProfile().setCurrentActivity("Online");
+			player.getProfile().setCurrentActivity("Online"); //Back in menu aka "online"
 			
 			return true;
 		}
 		
 		return false;
 	}
-	public boolean reconnectPlayer(ServerPlayer player) {
+	public void reconnect_start(ServerPlayer player) {
+		
+		//SIND INFO ABOUT SYNC IF NOT SEND ALREADY
+		if(awaitReconnect.contains(player) == false) {
+			player.getProfile().getConnection().sendData(696, ""+player.getId());
+		}
 		
 		if(isRoundChange == true) {
 			//Currently round change, so wait with reconnect after finish
 			awaitReconnect.add(player);
 			ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") AWAITS RECONNECT", true);
-			return false;
+			return;
 		}
 		
+		ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") IS RECONNECTING...", true);
+		
+		//START GAME PROGRESS SYNCING - Start with general Data (Will start a ping pong with client over multiple loading steps)
+		player.getProfile().getConnection().sendData(698, this.getGameData());
+		
+	}
+	
+	public void reconnect_generalDone(ServerPlayer player) {
+		
+		//699 - roundNumber / executeID
+		player.getProfile().getConnection().sendData(699, this.getRoundNumber()+";"+this.executeID);
+			
+	}
+	
+	public void reconnect_metaDone(ServerPlayer player) {
+		
+		//700 - Actions
+		for(GameAction action : this.actionLog) {
+			player.getProfile().getConnection().sendData(700, action.getData());
+		}
+			
+	}
+
+	public void reconnect_actionDone(ServerPlayer player) {
+		
+		//697/697 - sync finished
+		player.getProfile().setCurrentActivity(this.statusDescription);
+		player.getProfile().getConnection().sendData(697, "Reconnect data complete!");
+		this.sendDataToAllGamePlayer(696, ""+player.getId()); //THIS GETS NOT SEND TO RECONNECTED PLAYER (not added to list yet)
+		
+		//Finaly add him to game fully
 		for(int i = 0 ; i < this.playerList.size() ; i++) {
 			ServerPlayer p = this.playerList.get(i);
 			if(p.getId() == player.getId()) {
-				
-				//INFORM PLAYER ABOUT INCOMMING RECONNECT/SYNC
-				player.getProfile().getConnection().sendData(696, ""+player.getId());
-				
-				//START GAME PROGRESS SYNCING
-				this.syncGameProgress(player);
 				
 				//ADD BACK TO GAME AT SAME POS
 				this.playerList.add(i, player); //INSERT NEW PLAYER AS REPLACEMENT TO OLD ONE AT SAME POSITION
 				this.playerList.remove(i+1); //THEN REMOVE OLD PLAYER WHICH GOT PUSHED TO THE RIGHT BY ONE
 				disconnectedPlayer.remove(p); //REMOVE OLD PLAYER FROM RECONNECT LIST
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") RECONNECTED", true);
+				break;
 				
-				return true;
 			}
 		}
-		
-		ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT", true);
-		ConsoleOutput.printMessageInConsole("PLAYER ("+player.getId()+":"+player.getProfile().getName()+") FAILED TO RECONNECT TO GAME "+getId()+" ["+getType()+"]", true);
-		return false;
-		
-	}
-	
-	public boolean syncGameProgress(ServerPlayer player) {
-		
-		try {
-			
-			Thread.sleep(1000);
-			
-			//698 - General Data
-			player.getProfile().getConnection().sendData(698, this.getGameData());
-			
-			//Wait for reconnect client to load unit, profile, ... data [Gets loaded by the client on packet 698]
-			Thread.sleep(1000*8);
-			
-			//699 - roundNumber / executeID
-			player.getProfile().getConnection().sendData(699, this.getRoundNumber()+";"+this.executeID);
-			
-			Thread.sleep(1000);
-			
-			//700 - Actions
-			for(GameAction action : this.actionLog) {
-				player.getProfile().getConnection().sendData(700, action.getData());
-			}
-		
-			Thread.sleep(500);
-		
-			//697/697 - sync finished
-			player.getProfile().setCurrentActivity(this.statusDescription);
-			player.getProfile().getConnection().sendData(697, "Reconnect data complete!");
-			this.sendDataToAllGamePlayer(696, ""+player.getId()); //THIS GETS NOT SEND TO RECONNECTED PLAYER (not added to list yet)
-		
-			return true;
-		} catch (InterruptedException error) {
-			error.printStackTrace();
-			return false;
-		}
-			
 		
 	}
 	
@@ -729,12 +721,16 @@ public class ServerGame {
 						ConsoleOutput.printMessageInConsole(getId(), "All tasks executed! (Blocked: "+blockedActionsForThisRound+")", true);
 						usedFieldsForThisRound.clear();
 						blockedActionsForThisRound = 0;
+						//Add round end action (does nothing but ensures that at least one action per round exists for simulating round changes)
+						GameAction roundEndAction = new GameAction(-1, GameActionType.ROUND_END, roundNumber, "Round "+roundNumber+" finished", -1);
+						roundEndAction.setExecuteID(executeID++);
+						actionLog.add(roundEndAction);
 						roundNumber++;
 						ConsoleOutput.printMessageInConsole(getId(), "# NEXT ROUND (ID: "+id+" ; Round: "+roundNumber+")", true);
 						isRoundChange = false;
 						//RECONNECT WAITING ONES
 						for(ServerPlayer p : awaitReconnect) {
-							reconnectPlayer(p);
+							reconnect_start(p);
 						}
 						awaitReconnect.clear();
 						startPlayerReadyTimer();
@@ -1058,6 +1054,9 @@ public class ServerGame {
 		this.stopSendWaitTimer();
 		this.stopPingUpdateTimer();
 		this.stopReconnectTimer();
+		
+		ServerGameData.runningGames.remove(this);
+		ServerGameData.oldFinishedGames.add(this);
 		
 		if(cause == GameFinishCause.DRAW) {
 			//NO WINNER / LOSER

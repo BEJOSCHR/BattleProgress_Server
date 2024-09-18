@@ -195,7 +195,7 @@ public class PlayerProfile {
 	public void setCurrentActivity(String currentActivity) {
 		this.currentActivity = currentActivity;
 		for(PlayerProfile profile : this.friendlist) {
-			if(profile.getOnlineTimeInMin() != -1) {
+			if(profile.getOnlineTimeInMin() != -1 && profile.getConnection() != null) {
 				//IS ONLINE
 				profile.getConnection().sendData(126, this.id+";"+currentActivity);
 			}

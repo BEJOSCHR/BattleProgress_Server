@@ -241,7 +241,7 @@ public class ProfileHandler {
 						//CHECK FOR GAME RECONNECT
 						ServerGame game = ServerGameHandler.getGameByPlayerID(profile.getId());
 						if(game != null) {
-							game.reconnectPlayer(player);
+							game.reconnect_start(player);
 						}else {
 							new ServerGroup(player);
 						}
