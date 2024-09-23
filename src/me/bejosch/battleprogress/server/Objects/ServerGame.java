@@ -69,7 +69,7 @@ public class ServerGame {
 		
 		ServerGameData.runningGames.add(this);
 		ConsoleOutput.printMessageInConsole("CREATED GAME "+getId()+" ["+getType()+"] ON MAP '"+map.name+"'", true);
-		ConsoleOutput.lastCreatedGameID = this.getId();
+		ConsoleData.lastCreatedGameID = this.getId();
 		checkAllAccept();
 	}
 	public ServerGame(ServerPlayer host, Map map) {
@@ -84,7 +84,7 @@ public class ServerGame {
 		
 		ServerGameData.runningGames.add(this);
 		ConsoleOutput.printMessageInConsole("CREATED GAME "+getId()+" ["+getType()+"] ON MAP '"+map.name+"' WITH HOST '"+host.getProfile().getName()+"'", true);
-		ConsoleOutput.lastCreatedGameID = this.getId();
+		ConsoleData.lastCreatedGameID = this.getId();
 	}
 	
 	private void checkAllAccept() {
@@ -293,11 +293,11 @@ public class ServerGame {
 			}else if(this.status == GameStatus.INGAME) {
 				//GAME IS RUNNING AND NOT FINISHED - CHECK ENDING
 				
+				disconnectedPlayer.put(player, ServerGameData.reconnectTimeSec);
 				if(player.isRoundReady()) { //IF READY, SET UNREADY
 					player.resetRoundReady();
 					this.playerIsRound_UN_Ready(player.getId());
 				}
-				disconnectedPlayer.put(player, ServerGameData.reconnectTimeSec);
 				startReconnectTimer();
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") DISCONNECTED", true);
 				this.sendDataToAllGamePlayer(695, ""+player.getId()+";"+ServerGameData.reconnectTimeSec);
@@ -1072,6 +1072,12 @@ public class ServerGame {
 			
 			//TODO CALCULATE RP (ONLY IF RANKED) AND LEVEL GAINS/LOSES AND SEND IT TO EACH PLAYER WITH HIS DATA
 			
+		}
+		
+		if(ConsoleData.focusedGameID == this.id) {
+			ConsoleData.focusedGameID = -1;
+			ConsoleOutput.printMessageInConsole("Terminated game session for game ["+this.id+"]", true);
+			ConsoleOutput.printBlankLineInConsole();
 		}
 		
 	}

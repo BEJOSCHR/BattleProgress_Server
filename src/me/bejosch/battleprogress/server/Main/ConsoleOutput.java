@@ -31,10 +31,6 @@ import me.bejosch.battleprogress.server.Objects.ServerGroup;
 import me.bejosch.battleprogress.server.Objects.ServerPlayer;
 
 public class ConsoleOutput {
-
-	public static Timer ConsoleInputScanner = new Timer();
-
-	public static int lastCreatedGameID = -1;
 	
 //==========================================================================================================
 	/**
@@ -75,7 +71,7 @@ public class ConsoleOutput {
 	 */
 	public static void startUserInputScanner() {
 		
-		ConsoleInputScanner.scheduleAtFixedRate(new TimerTask() {
+		ConsoleData.ConsoleInputScanner.scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run() {
 				
@@ -190,7 +186,7 @@ public class ConsoleOutput {
 				printMessageInConsole("/game [ID]", true);
 			}
 		}else {
-			ServerGame game = ServerGameHandler.getGameByID(lastCreatedGameID);
+			ServerGame game = ServerGameHandler.getGameByID(ConsoleData.lastCreatedGameID);
 			if(game != null) {
 				//USE LAST CREATED GAME
 				printBlankLineInConsole();

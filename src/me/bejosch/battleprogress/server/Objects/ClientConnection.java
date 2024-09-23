@@ -49,9 +49,9 @@ public class ClientConnection {
 				}
 				recieveDataFromClient(signal, id, answer);
 			}
-		}catch(NullPointerException | NumberFormatException error) {
+		}catch(NullPointerException | NumberFormatException | IndexOutOfBoundsException error) {
 			//IGNORE DATA WITH WRONG SYNTAX
-			ConsoleOutput.printMessageInConsole(-1, "Wrong syntax data received! ["+message+"]", true);
+			ConsoleOutput.printMessageInConsole(-1, "Wrong syntax data received! ["+message+"] ("+error.getLocalizedMessage()+")", true);
 //			error.printStackTrace();
 		}
 		
@@ -67,7 +67,7 @@ public class ClientConnection {
 		long id = ConnectionData.getNewPacketId();
 		session.write(signal+"-"+id+"-"+data);
 		
-		if(signal != 997) {
+		if(signal != 997 && signal != 801) {
 			sendedDataList.add(signal+"-"+id+"-"+data);
 		}
 		
@@ -82,7 +82,7 @@ public class ClientConnection {
 	 */
 	public void recieveDataFromClient(int signal, int id, String data) {
 			
-		int[] signalBlackList = {103, 105, 106, 112, 997, 699};
+		int[] signalBlackList = {103, 105, 106, 112, 997, 801};
 		List<Integer> noConsoleOutput = new ArrayList<>();
 		for(int i : signalBlackList) {noConsoleOutput.add(i);}
 		
