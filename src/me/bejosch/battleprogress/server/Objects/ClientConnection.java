@@ -544,10 +544,37 @@ public class ClientConnection {
 			// GameID
 			ServerGameHandler.getGameByID(Integer.parseInt(data)).reconnect_metaDone(player);
 			break;
-		//GAME SYNC DATA - RoundNumber (Done confirmation)
+		//GAME SYNC DATA - Actions (Done confirmation)
 		case 700:
 			// GameID
 			ServerGameHandler.getGameByID(Integer.parseInt(data)).reconnect_actionDone(player);
+			break;
+//========================================================================
+		//SPECTATE SYNC DATA - General Game Data (Request)
+		case 750:
+			// GameID
+			player.getProfile().getConnection().sendData(750, ServerGameHandler.getGameByID(Integer.parseInt(data)).getGameData());
+			break;
+		//SPECTATE SYNC DATA - RoundNumber (Request)
+		case 751:
+			// GameID
+			ServerGame gameSpec = ServerGameHandler.getGameByID(Integer.parseInt(data));
+			player.getProfile().getConnection().sendData(751, gameSpec.getRoundNumber()+";"+gameSpec.getExecuteID());
+			break;
+		//SPECTATE SYNC DATA - Actions (Request)
+		case 752:
+			// GameID
+			ServerGame gameSpec2 = ServerGameHandler.getGameByID(Integer.parseInt(data));
+			for(GameAction action : gameSpec2.getActionLog()) {
+				player.getProfile().getConnection().sendData(752, action.getData());
+			}
+			//Add to spectate list
+			gameSpec2.addSpectator(player);
+			break;
+		//STOP SPECTATE
+		case 753:
+			// GameID
+			ServerGameHandler.getGameByID(Integer.parseInt(data)).removeSpectator(player);
 			break;
 //========================================================================
 		//CLIENT GAME PING

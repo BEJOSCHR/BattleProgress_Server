@@ -34,6 +34,7 @@ public class ServerGame {
 	
 	private HashMap<ServerPlayer, Integer> disconnectedPlayer = new HashMap<>();
 	private List<ServerPlayer> awaitReconnect = new ArrayList<ServerPlayer>();
+	private List<ServerPlayer> spectator = new ArrayList<ServerPlayer>();
 
 	private Timer reconnectTimer = null;
 	private Timer playerReadyTimer = null;
@@ -380,6 +381,35 @@ public class ServerGame {
 	
 //==========================================================================================================
 	/**
+	 * Spectate section
+	 */
+	public void addSpectator(ServerPlayer spectator) {
+		
+		this.spectator.add(spectator);
+		
+	}
+	public void syncSpectators() {
+		
+		if(this.spectator.isEmpty()) { return; }
+		
+		//Send the last round actions to all spectators
+		for(GameAction action : this.actionLog) {
+			if(action.round == this.roundNumber-1) {
+				for(ServerPlayer spec : this.spectator) {
+					spec.getProfile().getConnection().sendData(752, action.getData());
+				}
+			}
+		}
+		
+	}
+	public void removeSpectator(ServerPlayer spectator) {
+		
+		this.spectator.remove(spectator);
+		
+	}
+	
+//==========================================================================================================
+	/**
 	 * Starts the timer which checks if a client exceeded its reconnect time
 	 */
 	private void startReconnectTimer() {
@@ -721,13 +751,15 @@ public class ServerGame {
 						ConsoleOutput.printMessageInConsole(getId(), "All tasks executed! (Blocked: "+blockedActionsForThisRound+")", true);
 						usedFieldsForThisRound.clear();
 						blockedActionsForThisRound = 0;
-						//Add round end action (does nothing but ensures that at least one action per round exists for simulating round changes)
+						//Add round end action (does nothing but ensures that at least one action per round exists for simulating round changes), also displays round changes for spectate and replay
 						GameAction roundEndAction = new GameAction(-1, GameActionType.ROUND_END, roundNumber, "Round "+roundNumber+" finished", -1);
 						roundEndAction.setExecuteID(executeID++);
 						actionLog.add(roundEndAction);
 						roundNumber++;
 						ConsoleOutput.printMessageInConsole(getId(), "# NEXT ROUND (ID: "+id+" ; Round: "+roundNumber+")", true);
 						isRoundChange = false;
+						//SPECTATOR SYNC
+						syncSpectators();
 						//RECONNECT WAITING ONES
 						for(ServerPlayer p : awaitReconnect) {
 							reconnect_start(p);
@@ -1210,6 +1242,9 @@ public class ServerGame {
 	}
 	public int getRoundNumber() {
 		return roundNumber;
+	}
+	public int getExecuteID() {
+		return executeID;
 	}
 	public boolean isRunning() {
 		return isRunning;
