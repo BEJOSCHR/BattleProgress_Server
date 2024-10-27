@@ -552,8 +552,9 @@ public class ClientConnection {
 //========================================================================
 		//SPECTATE SYNC DATA - General Game Data (Request)
 		case 750:
-			// GameID
-			player.getProfile().getConnection().sendData(750, ServerGameHandler.getGameByID(Integer.parseInt(data)).getGameData());
+			// TargetPlayerId
+			ServerPlayer specTarget = ServerPlayerHandler.getOnlinePlayer(Integer.parseInt(data));
+			player.getProfile().getConnection().sendData(750, specTarget.getGame().getGameData());
 			break;
 		//SPECTATE SYNC DATA - RoundNumber (Request)
 		case 751:

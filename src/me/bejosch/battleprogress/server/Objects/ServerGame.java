@@ -34,7 +34,7 @@ public class ServerGame {
 	
 	private HashMap<ServerPlayer, Integer> disconnectedPlayer = new HashMap<>();
 	private List<ServerPlayer> awaitReconnect = new ArrayList<ServerPlayer>();
-	private List<ServerPlayer> spectator = new ArrayList<ServerPlayer>();
+	private CopyOnWriteArrayList<ServerPlayer> spectator = new CopyOnWriteArrayList<ServerPlayer>();
 
 	private Timer reconnectTimer = null;
 	private Timer playerReadyTimer = null;
@@ -369,6 +369,7 @@ public class ServerGame {
 				
 				//ADD BACK TO GAME AT SAME POS
 				this.playerList.add(i, player); //INSERT NEW PLAYER AS REPLACEMENT TO OLD ONE AT SAME POSITION
+				player.addToGame(this, i+1); //SET THIS GAME IN THE PLAYER
 				this.playerList.remove(i+1); //THEN REMOVE OLD PLAYER WHICH GOT PUSHED TO THE RIGHT BY ONE
 				disconnectedPlayer.remove(p); //REMOVE OLD PLAYER FROM RECONNECT LIST
 				ConsoleOutput.printMessageInConsole(getId(), "PLAYER ("+player.getId()+":"+player.getProfile().getName()+") RECONNECTED", true);
@@ -392,11 +393,17 @@ public class ServerGame {
 		
 		if(this.spectator.isEmpty()) { return; }
 		
+		//TODO DOUBLE SEND BUG!!!!!!!!!!!!!!!!
+		
 		//Send the last round actions to all spectators
 		for(GameAction action : this.actionLog) {
 			if(action.round == this.roundNumber-1) {
 				for(ServerPlayer spec : this.spectator) {
-					spec.getProfile().getConnection().sendData(752, action.getData());
+					if(spec.getProfile().getConnection() != null) {
+						spec.getProfile().getConnection().sendData(752, action.getData());
+					}else {
+						this.spectator.remove(spec); //No con = offline = no spec
+					}
 				}
 			}
 		}
