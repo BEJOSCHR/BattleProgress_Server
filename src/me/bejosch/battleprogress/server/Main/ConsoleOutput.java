@@ -1,7 +1,8 @@
 package me.bejosch.battleprogress.server.Main;
 
-import java.text.DateFormat;
-import java.util.Calendar;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Timer;
@@ -45,10 +46,11 @@ public class ConsoleOutput {
 		if(gameID == ConsoleData.focusedGameID) {
 			//RIGHT MODE
 			if(prefix == true) {
-				String time = DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime()).split(" ")[1];
+				String time = ZonedDateTime.now(ZoneId.of("Europe/Berlin")).format(DateTimeFormatter.ISO_LOCAL_TIME);
 				System.out.println(ServerData.messagePrefix+"["+time+"] "+text);
 			}else {
-				System.out.println(text);
+				String time = ZonedDateTime.now(ZoneId.of("Europe/Berlin")).format(DateTimeFormatter.ISO_LOCAL_TIME);
+				System.out.println("["+time+"] "+text);
 			}
 		}
 		

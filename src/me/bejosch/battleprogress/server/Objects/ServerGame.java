@@ -386,14 +386,21 @@ public class ServerGame {
 	 */
 	public void addSpectator(ServerPlayer spectator) {
 		
-		this.spectator.add(spectator);
-		
+		if(!this.spectator.contains(spectator)) {
+			this.spectator.add(spectator);
+		}else {
+			ConsoleOutput.printMessageInConsole("Tried adding new spectator, which was already added - Skipping and continue...", true);
+		}
+			
 	}
 	public void syncSpectators() {
 		
 		if(this.spectator.isEmpty()) { return; }
 		
-		//TODO DOUBLE SEND BUG!!!!!!!!!!!!!!!!
+		//Just debug if needed
+		/*for(ServerPlayer spec : this.spectator) {
+			ConsoleOutput.printMessageInConsole("Sending to spec ["+(this.roundNumber-1)+"]: "+spec.getId()+" | "+spec.getProfile().getName(), false);
+		}*/
 		
 		//Send the last round actions to all spectators
 		for(GameAction action : this.actionLog) {
