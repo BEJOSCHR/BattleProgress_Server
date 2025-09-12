@@ -17,10 +17,11 @@ import me.bejosch.battleprogress.server.Enum.GameStatus;
 import me.bejosch.battleprogress.server.Enum.GameType;
 import me.bejosch.battleprogress.server.Handler.ServerGameHandler;
 import me.bejosch.battleprogress.server.Handler.ServerGroupHandler;
+import me.bejosch.battleprogress.server.Handler.ServerPlayerHandler;
 import me.bejosch.battleprogress.server.Main.ConsoleOutput;
 
 public class ServerGame {
-
+	
 	private int id;
 	private GameType type;
 	private String statusDescription = "";
@@ -160,6 +161,7 @@ public class ServerGame {
 			player.resetExecAllTasks();
 			player.getProfile().getConnection().sendData(620, data);
 			player.getProfile().setCurrentActivity(this.statusDescription);
+			player.setProgressPoints(0);
 		}
 		
 		//START PING UPDATE TIMER
@@ -780,6 +782,42 @@ public class ServerGame {
 						}
 						awaitReconnect.clear();
 						startPlayerReadyTimer();
+						
+						//CHECK FOR GAME FINISH
+						List<ServerPlayer> check_winner = new ArrayList<>();
+						for(ServerPlayer winCheckPlayer : playerList) {
+							if(hasEnoughProgressPoints(winCheckPlayer)) {
+								check_winner.add(winCheckPlayer);
+							}
+						}
+						if(!check_winner.isEmpty()) {
+							//At least one over limit
+							if(!GameType.isModus1v1(type)) {
+								//2v2
+								if(check_winner.size() > 2) { // 2 is okay because thats both player in the same "winning" team being counted separately
+									//Both teams over limit
+									finishGame(-99, GameFinishCause.DRAW);
+									return;
+								}else {
+									ServerPlayer enemy = getEnemyPlayers(check_winner.get(0)).get(0); //need a loser id for game finish call
+									finishGame(enemy.getId(), GameFinishCause.ENOUGH_PROGRESS_POINTS);
+									return;
+								}
+							}else {
+								//1v1
+								if(check_winner.size() > 1) {
+									//Both player over limit
+									finishGame(-99, GameFinishCause.DRAW);
+									return;
+								}else {
+									ServerPlayer enemy = getEnemyPlayers(check_winner.get(0)).get(0); //need a loser id for game finish call
+									finishGame(enemy.getId(), GameFinishCause.ENOUGH_PROGRESS_POINTS);
+									return;
+								}
+							}
+						}
+						//CHECK FOR GAME FINISH
+						
 					}
 					
 				}
@@ -794,8 +832,34 @@ public class ServerGame {
 	}
 	
 //==========================================================================================================
+	
+	private void addProgressPoints(int playerID, int amount) {
+		if(!GameType.isModus1v1(this.type)) {
+			//2v2 so add both player
+			List<ServerPlayer> players = this.getAlliedPlayers(playerID);
+			for(ServerPlayer player : players) {
+				player.addProgressPoints(amount);
+			}
+		}else {
+			//1v1 just the one
+			ServerPlayer player = ServerPlayerHandler.getOnlinePlayer(playerID);
+			player.addProgressPoints(amount);
+		}
+	}
+	
+	private boolean hasEnoughProgressPoints(ServerPlayer player) {
+		if(!GameType.isModus1v1(this.type)) {
+			//2v2
+			return (player.getProgressPoints() >= ServerGameData.targetProgressPoints_2v2);
+		}else {
+			//1v1
+			return (player.getProgressPoints() >= ServerGameData.targetProgressPoints_1v1);
+		}
+	}
+	
+//==========================================================================================================
 	/**
-	 * Starts the timer which checks whether all clients has send all their tasks
+	 * Starts the timer which keeps the connection alive and calculates the ping of each player by doing that
 	 */
 	private void startPingUpdateTimer() {
 		if(this.pingUpdateTimer == null) {
@@ -927,6 +991,13 @@ public class ServerGame {
 			if(building.health <= 0) {
 				//DEAD
 				this.toRemoveBuildings.add(building);
+				if(building.name.equalsIgnoreCase("Headquarter")) {
+					//ADD PROGRESSPOINTS (HQ)
+					this.addProgressPoints(action.playerId, ServerGameData.progressPoints_kill_hq);
+				}else {
+					//ADD PROGRESSPOINTS (BUILDING)
+					this.addProgressPoints(action.playerId, ServerGameData.progressPoints_kill_building);
+				}
 			}
 		}else {
 			ServerTroup troup = getTroup(action.newX, action.newY);
@@ -938,6 +1009,8 @@ public class ServerGame {
 				if(troup.health <= 0) {
 					//DEAD
 					this.toRemoveTroups.add(troup);
+					//ADD PROGRESSPOINTS (TROUP)
+					this.addProgressPoints(action.playerId, ServerGameData.progressPoints_kill_troup);
 				}
 			}else {
 				//NONE
@@ -1032,7 +1105,7 @@ public class ServerGame {
 	private void handleRemoveActionsOnRoundChange() {
 		
 		int deaths = 0;
-		int hqDestroyedID = -1;
+//		int hqDestroyedID = -1;
 		
 		for(ServerBuilding building : this.toRemoveBuildings) {
 			this.buildings.remove(building);
@@ -1041,15 +1114,15 @@ public class ServerGame {
 			this.actionLog.add(deathAction);
 			ConsoleOutput.printMessageInConsole(getId(), "	Death-B on "+building.X+":"+building.Y+" by "+building.playerId, true);
 			deaths++;
-			if(building.name.equalsIgnoreCase("Headquarter")) {
-				if(hqDestroyedID == -1) {
-					//NO HQ DESTROYED YET
-					hqDestroyedID = building.playerId;
-				}else {
-					//SAME ROUND ANOTHER HQ DESTROYED
-					hqDestroyedID = -99;
-				}
-			}
+//			if(building.name.equalsIgnoreCase("Headquarter")) {
+//				if(hqDestroyedID == -1) {
+//					//NO HQ DESTROYED YET
+//					hqDestroyedID = building.playerId;
+//				}else {
+//					//SAME ROUND ANOTHER HQ DESTROYED
+//					hqDestroyedID = -99;
+//				}
+//			}
 		}
 		this.toRemoveBuildings.clear();
 		
@@ -1066,13 +1139,13 @@ public class ServerGame {
 		ConsoleOutput.printMessageInConsole(getId(), "	Deaths executed (Total: "+deaths+")", true);
 		
 		//CHECK FOR HQ DESTROYED
-		if(hqDestroyedID == -99) {
-			//GAME DRAW
-			this.finishGame(-99, GameFinishCause.DRAW);
-		}else if(hqDestroyedID != -1) {
-			//WINNER WINNER, CHICKEN DINNER
-			this.finishGame(hqDestroyedID, GameFinishCause.HQ_DESTROY);
-		}
+//		if(hqDestroyedID == -99) {
+//			//GAME DRAW
+//			this.finishGame(-99, GameFinishCause.DRAW);
+//		}else if(hqDestroyedID != -1) {
+//			//WINNER WINNER, CHICKEN DINNER
+//			this.finishGame(hqDestroyedID, GameFinishCause.HQ_DESTROY);
+//		}
 		
 	}
 
@@ -1167,10 +1240,10 @@ public class ServerGame {
 				//1v1
 				if(this.playerList.get(0).getId() == playerID) {
 					//Player1
-					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(0)); //return player1
 				}else if(this.playerList.get(1).getId() == playerID) {
 					//Player2
-					output.add(this.playerList.get(1));
+					output.add(this.playerList.get(1)); //return player2
 				}else {
 					ConsoleOutput.printMessageInConsole("Getting allied player found no matching player! (1v1 - ID: "+playerID+")", true);
 				}
@@ -1210,10 +1283,10 @@ public class ServerGame {
 				//1v1
 				if(this.playerList.get(0).getId() == playerID) {
 					//Player1
-					output.add(this.playerList.get(1));
+					output.add(this.playerList.get(1)); //Return player2
 				}else if(this.playerList.get(1).getId() == playerID) {
 					//Player2
-					output.add(this.playerList.get(0));
+					output.add(this.playerList.get(0)); //Return player1
 				}else {
 					ConsoleOutput.printMessageInConsole("Getting enemy player found no matching player! (1v1 - ID: "+playerID+")", true);
 				}

@@ -19,6 +19,7 @@ public class ServerPlayer {
 	private boolean playerIsRoundReady = false;
 	private boolean hasSendAllTask = false;
 	private boolean hasExecAllTask = false;
+	private int progressPoints = 0;
 	
 	public ServerPlayer(int id) {
 		
@@ -119,6 +120,16 @@ public class ServerPlayer {
 	}
 	public boolean hasExecAllTask() {
 		return this.hasExecAllTask;
+	}
+	
+	public int getProgressPoints() {
+		return progressPoints;
+	}
+	public void setProgressPoints(int progressPoints) {
+		this.progressPoints = progressPoints;
+	}
+	public void addProgressPoints(int progressPoints) {
+		this.progressPoints += progressPoints;
 	}
 	
 }
