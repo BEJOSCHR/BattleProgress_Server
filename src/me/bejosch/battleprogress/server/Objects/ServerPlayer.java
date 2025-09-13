@@ -38,6 +38,9 @@ public class ServerPlayer {
 		this.group = group;
 	}
 	
+	public void setGame(ServerGame game) {
+		this.game = game;
+	}
 	public void addToGame(ServerGame game, int positionIngame) {
 		this.game = game;
 		this.positionInGame = positionIngame;

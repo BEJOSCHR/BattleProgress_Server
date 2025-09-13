@@ -20,6 +20,7 @@ public class DictionaryInfoHandler {
 		dictionaryInfos.add(new DictionaryInfoDescription("Energy"));
 		dictionaryInfos.add(new DictionaryInfoDescription("Material"));
 		dictionaryInfos.add(new DictionaryInfoDescription("ResearchPoints"));
+		dictionaryInfos.add(new DictionaryInfoDescription("ProgressPoints"));
 		
 		if(withMessages == true) {
 			ConsoleOutput.printMessageInConsole("Loaded "+dictionaryInfos.size()+" dictionaryInfoDescriptions", true);

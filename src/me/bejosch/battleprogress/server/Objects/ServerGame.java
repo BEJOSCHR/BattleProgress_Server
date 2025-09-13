@@ -369,6 +369,12 @@ public class ServerGame {
 			ServerPlayer p = this.playerList.get(i);
 			if(p.getId() == player.getId()) {
 				
+				//Transfer pos,progressPoints,game,group...
+				player.setProgressPoints(p.getProgressPoints()); //Importand!!!
+				player.setPositionInGame(p.getPositionInGame());
+				player.setGame(p.getGame());
+				player.setGroup(p.getGroup());
+				
 				//ADD BACK TO GAME AT SAME POS
 				this.playerList.add(i, player); //INSERT NEW PLAYER AS REPLACEMENT TO OLD ONE AT SAME POSITION
 				player.addToGame(this, i+1); //SET THIS GAME IN THE PLAYER
